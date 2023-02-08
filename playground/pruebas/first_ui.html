@@ -1,0 +1,59 @@
+<div class="mt-2 mb-5 mx-3 col-4">
+
+    <div class="deduccion card p-3" style="background-color: #393d62;">
+        
+        <div class="d-flex p-2 mb-3">
+            <input type="text" 
+                class="form-control deduccionName me-5" 
+                placeholder="Nombre del ejercicio">
+            <button type="button" 
+                class="btn btn-secondary" 
+                onclick="$(this).closest('.deduccion').children('.contenido').slideToggle()">
+                <i class="fa-solid fa-caret-down"></i>
+            </button>
+        </div>
+
+        <div class="contenido" style="display: none;">
+            <h4>Premisas</h4>
+
+            <div class="premisasContainer">
+
+                <div class="d-flex p-2">
+                    <input type="text" class="form-control premisa" onchange="checkPremisa(this);">
+                    <a class="ms-3 m-auto" onclick="deleteInput(this);"><i class="fa-solid fa-xmark"></i></a>
+                </div>
+
+                <div class="p-2">
+                    <button class="btn btn-primary" onclick="addInput(this)"><i class="fa-solid fa-plus"></i></button>
+                </div>
+
+            </div>
+
+
+            <h4 class="mt-5">Resultado</h4>
+
+            <div class="resultadoContainer" class="p-2 pe-5">
+                <input  type="text" class="form-control resultado"  onchange="checkResultado(this);">
+            </div>
+
+            
+            <h4 class="mt-5">Pasos</h4>
+
+            <div class="pasosContainer">
+
+                <div class="d-flex p-2">
+                    <input type="text" class="form-control paso"  onchange="checkPaso(this);">
+                    <a class="ms-3 m-auto" onclick="deleteInput(this);"><i class="fa-solid fa-xmark"></i></a>
+                </div>
+
+                <div class="p-2">
+                    <button class="btn btn-primary" onclick="addInput(this)"><i class="fa-solid fa-plus"></i></button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="p-5"><button class="btn btn-primary" onclick="addDeduccion()">Nueva deduccion</button></div>
+
+</div>

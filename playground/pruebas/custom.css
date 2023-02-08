@@ -1,0 +1,15 @@
+.comint-container, .monaco-editor  {
+    width: 100% !important;
+}
+
+.playground, .header{
+    display: none;
+}
+
+.menu-button svg, .openBtn svg{
+    font-size: 11px;
+}
+
+.menu-button, .openBtn {
+    line-height: 1px;
+}

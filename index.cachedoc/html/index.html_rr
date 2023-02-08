@@ -1,0 +1,9 @@
+filetype(documentation).
+main_title([[string_esc("The Ciao Prolog system")]]).
+sect([level(0)],global_label("The Ciao Prolog system"),[string_esc("The Ciao Prolog system")]).
+refs_link(install).
+refs_link(documentation).
+refs_link(project).
+refs_link(playground).
+refs_link(bundles).
+refs_link(indexsearch).

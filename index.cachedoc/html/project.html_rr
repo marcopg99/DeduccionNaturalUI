@@ -1,0 +1,4 @@
+filetype(documentation).
+sect([level(1)],global_label("The Project"),[string_esc("The Project")]).
+sect([level(2)],local_label("Contribute"),[string_esc("Contribute")]).
+sect([level(2)],local_label("The Team"),[string_esc("The Team")]).

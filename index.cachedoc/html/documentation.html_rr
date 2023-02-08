@@ -1,0 +1,6 @@
+filetype(documentation).
+sect([level(1)],global_label("Documentation"),[string_esc("Documentation")]).
+sect([level(2)],local_label("Reference Manuals"),[string_esc("Reference Manuals")]).
+sect([level(2)],local_label("Some Tutorials and Presentations"),[string_esc("Some Tutorials and Presentations")]).
+sect([level(2)],local_label("Forums and mailing lists"),[string_esc("Forums and mailing lists")]).
+sect([level(2)],local_label("Publications"),[string_esc("Publications")]).

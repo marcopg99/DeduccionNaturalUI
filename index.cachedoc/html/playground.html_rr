@@ -1,0 +1,2 @@
+filetype(documentation).
+sect([level(1)],global_label("Playground"),[string_esc("Playground")]).

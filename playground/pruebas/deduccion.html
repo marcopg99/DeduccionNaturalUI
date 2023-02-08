@@ -1,0 +1,104 @@
+<div class="deduccion card p-3 mb-4" style="background-color: #37474f;">
+        
+    <div class="d-flex p-2 mb-3">
+        <input type="text" 
+            class="form-control deduccionName me-5" 
+            placeholder="Nombre del ejercicio">
+        <button type="button" 
+            class="btn btn-secondary mx-2 btnEjecutar"
+            onclick="ejecutarDeduccion(this)">
+            <i class="fa-solid fa-play" style="color: #3fc424;"></i>
+        </button>
+        <button type="button" 
+            class="btn btn-secondary mx-2" 
+            onclick="$(this).closest('.deduccion').remove()">
+            <i class="fa-solid fa-trash-can" style="color: #e53935;"></i>
+        </button>
+        <button type="button" 
+            class="btn btn-secondary mx-2" 
+            onclick="$(this).closest('.deduccion').children('.contenido').slideToggle()">
+            <i class="fa-solid fa-caret-down"></i>
+        </button>
+    </div>
+
+    <div class="contenido" style="display: none;">
+        <h4>Premisas</h4>
+
+        <div class="premisasContainer">
+
+            <div class="d-flex p-2">
+                <div class="w-100">
+                    <input type="text" 
+                        class="form-control premisa" 
+                        onchange="checkPremisa(this);">
+                    <ul class="dropdown-menu"></ul>
+                </div>
+                <a class="ms-3 m-auto" 
+                    onclick="deleteInput(this);">
+                    <i class="fa-solid fa-xmark" style="color: #e53935;"></i>
+                </a>
+            </div>
+
+            <div class="p-2">
+                <button class="btn btn-secondary addPremisa" 
+                    onclick="addInput(this)">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+
+        </div>
+
+
+        <h4 class="mt-5">Consecuente</h4>
+
+        <div class="consecuenteContainer p-2 pe-5">
+            <input type="text" 
+                class="form-control consecuente" 
+                onchange="checkConsecuente(this);">
+            <ul class="dropdown-menu"></ul>
+        </div>
+
+        
+        <h4 class="mt-5">Pasos</h4>
+
+        <div class="pasosContainer">
+
+            <div class="d-flex p-2 paso">
+                <div class="col-3 me-1">
+                    <select class="form-select pasoA">
+                        <option value="Premisa">Premisa</option>
+                        <option value="E">Eliminación</option>
+                        <option value="I">Inclusión</option>
+                        <option value="Supuesto">Supuesto</option>
+                    </select>
+
+
+                    <!-- <input type="text" 
+                        class="form-control paso" 
+                        onchange="checkPaso(this);">
+                    <ul class="dropdown-menu"></ul> -->
+                </div>
+                <div class="col-3" style="width: 18%;">
+                    <select class="form-select pasoB" style="display: none;">
+                        
+                    </select>
+                </div>
+                <div class="col-6 ms-1 pasosInputs d-flex justify-content-end">
+                    <input type="text" class="form-control me-1" style="max-width: 40%;">
+                </div>
+                <a class="ms-3 m-auto" 
+                    onclick="deleteInput(this);">
+                    <i class="fa-solid fa-xmark" style="color: #e53935;"></i>
+                </a>
+            </div>
+
+            <div class="p-2">
+                <button class="btn btn-secondary addPaso" 
+                    onclick="addPaso(this)">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
