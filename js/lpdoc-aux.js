@@ -15,7 +15,7 @@
 
 function importScript(src, is_async = false) {
   let el = document.createElement('script');
-  el.src = src;
+  el.src = '/DeduccionNaturalUI' + src;
   el.async = is_async;
   document.head.appendChild(el);
 }
@@ -23,7 +23,7 @@ function importCSS(src) {
   let el = document.createElement('link');
   el.rel = 'stylesheet';
   el.type = "text/css";
-  el.href = src;
+  el.href = '/DeduccionNaturalUI' + src;
   document.head.appendChild(el);
 }
 
