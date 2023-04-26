@@ -13,3 +13,47 @@
 .menu-button, .openBtn {
     line-height: 1px;
 }
+
+input, select {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.8rem !important;
+    letter-spacing: -0.5px;
+}
+
+.li-autcompl {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.8rem !important;
+    letter-spacing: -0.5px;
+}
+
+.sc {
+    color: #777777;
+    margin-left: 1rem;
+}
+
+.input-error {
+    background-color: #FFDDDD;
+    border-color: red;
+}
+
+pre {
+    font-size: initial !important;
+    font-family: inherit !important;
+}
+
+#consolaContainer {
+    background-color: #37474f;
+    color: #CDE;
+    min-height: 100%;
+}
+
+#exportDropdown .dropdown-toggle::after {
+    margin: 0;
+    color: white;
+}
+
+.index {
+	margin-right: 0.8em;
+}

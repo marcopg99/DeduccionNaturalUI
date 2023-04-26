@@ -1270,7 +1270,8 @@ async function initial_editor_value() { //CAMBIADO CODIGO PLAYGROUND
   //     return playgroundCfg.splash_code;
   //   }
   // }
-  let code = await fetchCode("http://localhost:8001/playground/pruebas/deduccionNatural2.pl");
+  console.log(window.location.origin + "/playground/pruebas/deduccionNaturalShell.pl");
+  let code = await fetchCode(window.location.origin + "/playground/pruebas/deduccionNaturalShell.pl");
   originalCode = code;
 
   return code;
@@ -1594,11 +1595,12 @@ class ToplevelProc {
     //
     let out = await this.w.read_stdout();
     let err = await this.w.read_stderr();
+    let arg = q_out.arg;
 
     await this.w.query_end();
     this.update_state(QueryState.READY);
 
-    return {out, err};
+    return {out, err, arg};
 
   }
 
@@ -3195,13 +3197,13 @@ async function loadCustomUI(pg) {
 
   pgVar = pg;
 
-  let mainDiv = elem_from_str('<div class="d-flex h-100"></div>');
+  let mainDiv = elem_from_str('<div class="d-flex" style="height: 90%;"></div>');
   // let mainDiv = document.createElement('div');
   // mainDiv.classList.add('d-flex', 'h-100');
 
 
   //COLUMNA DEDUCCIONES
-  let deducDiv = elem_from_str('<div class="mt-2 mb-5 px-3 col-4 deduccionContainer"></div>');
+  let deducDiv = elem_from_str('<div class="mt-2 px-3 col-4 deduccionContainer" style="overflow-y: scroll;"></div>');
   // let deducDiv = document.createElement('div');
   // deducDiv.classList.add('mt-2', 'mb-5', 'px-3', 'col-4', 'deduccionContainer');
 
@@ -3215,7 +3217,7 @@ async function loadCustomUI(pg) {
 
 
   //COLUMNA REGLAS
-  let relgaDiv = elem_from_str('<div class="mt-2 mb-5 px-3 col-4 reglaContainer"></div>');
+  let relgaDiv = elem_from_str('<div class="mt-2 px-3 col-4 reglaContainer" style="overflow-y: scroll;"></div>');
   // let relgaDiv = document.createElement('div');
   // relgaDiv.classList.add('mt-2', 'mb-5', 'px-3', 'col-4', 'reglaContainer');
 
@@ -3229,15 +3231,15 @@ async function loadCustomUI(pg) {
 
 
   //COLUMNA CONSOLA
-  let consolaDiv = elem_from_str('<div class="mt-2 mb-5 px-3 col-4 consolaContainer"></div>');
-  // let consolaDiv = document.createElement('div');
-  // consolaDiv.classList.add('mt-2', 'mb-5', 'px-3', 'col-4', 'consolaContainer');
-  consolaDiv.appendChild(pgVar.toplevel_el);
+  let consolaHtml = elem_from_str(await fetchCode(window.location.origin + "/playground/pruebas/consola.html"));
+  // let consolaHtml = elem_from_str('<div class="mt-2 mb-5 px-3 col-4 consolaContainer"></div>');
+  // consolaHtml.appendChild(pgVar.toplevel_el);
 
 
   //MENU
-  let menuDiv = elem_from_str(await fetchCode("http://localhost:8001/playground/pruebas/menu.html"));
+  let menuDiv = elem_from_str(await fetchCode(window.location.origin + "/playground/pruebas/menu.html"));
   let saveBtn = menuDiv.getElementsByClassName('saveBtn')[0];
+  var a_download = elem_from_str(`<a href="" style="text-decoration: none; color: inherit;">Guardar <i class="fa-solid fa-download"></i></a>`);
   saveBtn.addEventListener('click', function(e) {
     let name = prompt('Elige el nombre para guardar el archivo:');
     if(name != null) {
@@ -3252,13 +3254,13 @@ async function loadCustomUI(pg) {
       a_download.download = '';
     }
   })
-  const a_download = elem_from_str(`<a href="" style="text-decoration: none; color: inherit;">Save <i class="fa-solid fa-download"></i></a>`);
   saveBtn.appendChild(a_download);
+
 
   let body = document.getElementsByTagName('body')[0];
   mainDiv.append(deducDiv);
   mainDiv.append(relgaDiv);
-  mainDiv.append(consolaDiv);
+  mainDiv.append(consolaHtml);
   body.insertBefore(mainDiv, body.firstChild);
   body.insertBefore(menuDiv, body.firstChild);
 
@@ -3268,6 +3270,279 @@ async function loadCustomUI(pg) {
   inputs.each(function(index, element) {
     setAutocomlpeteEvents(element);
   });
+}
+
+function buildResult(result) {
+
+  let consola = resetConsola();
+
+  let shellResult = result[1].arg;
+  var split = shellResult.slice(6,-1).split("],[");
+  var auxRegla;
+  let deduccion = result[0];
+  let pasos;
+  let counter;
+  let hasError = false;
+  hideExportBtn();
+
+  let title = "Demostraci\u00F3n " + $(result[0]).find(".deduccionName")[0].value;
+  let titleLine = elem_from_str('<div class="title d-flex flex-row mb-2"></div>');
+  titleLine.appendChild(document.createTextNode(title));
+  consola.appendChild(titleLine);
+
+  for(let i = 0; i < split.length; i++) {
+    let line = originalToPretty(split[i]);
+    if(line.startsWith("'START'")) {
+      let premisas = createPremisasScript($(deduccion).find('.premisa'));
+      let consecuente = $(deduccion).find('.consecuente')[0].value.trim();
+      pasos = deduccion.querySelectorAll('.paso');
+      counter = 0;
+
+      let firstLine = elem_from_str('<div class="linea d-flex flex-row mb-3 linea-start"></div>');
+      firstLine.appendChild(document.createTextNode("T [" + premisas + "]     \u22A2     " + consecuente));
+      consola.appendChild(firstLine);
+
+    } else if(line.startsWith("'START Regla'")) {
+      let reglaName = line.slice(15).split(",")[0].slice(1,-1);
+      auxRegla = $('.reglaName').filter(function(index, elem) {
+          return elem.value == reglaName;
+        }).closest('.reglaContainer')[0];
+      let premisas = createPremisasScript($(auxRegla).find('.premisa'));
+      let consecuente = $(auxRegla).find('.consecuente')[0].value.trim();
+      pasos = auxRegla.querySelectorAll('.paso');
+      counter = 0;
+
+      let firstLine = elem_from_str('<div class="linea d-flex flex-row mb-2 linea-start-regla"></div>');
+      let secondLine = elem_from_str('<div class="linea d-flex flex-row mb-3 linea-start"></div>');
+      firstLine.appendChild(document.createTextNode("Demostraci\u00F3n regla " + reglaName));
+      secondLine.appendChild(document.createTextNode("T [" + premisas + "]     \u22A2     " + consecuente));
+      consola.appendChild(firstLine);
+      consola.appendChild(secondLine);
+
+    } else if(line.startsWith("'REGLA")) {
+      let stringResult = hardOriginalToPretty(line.slice(9).split(",")[2]);
+      let tabs = parseInt(line.slice(9).split(",")[1]);
+      let paso = pasos[counter];
+      let stringRegla = originalToPretty(generatePasoScript(paso));
+
+      let newLine = elem_from_str('<div class="linea d-flex flex-row linea-regla"></div>');
+      newLine.style.paddingLeft = tabs + "em";
+      let leftCol = elem_from_str('<div class="col-7 resultado"></div>');
+      let rightCol = elem_from_str('<div class="col-5 reglaResult"></div>');
+      let index = elem_from_str('<span class="index">' + (counter + 1) + '.</span>');
+      let content = elem_from_str('<span class="content">' + stringResult + '</span>')
+      leftCol.appendChild(index);
+      leftCol.appendChild(content);
+      rightCol.appendChild(document.createTextNode(stringRegla));
+      newLine.appendChild(leftCol);
+      newLine.appendChild(rightCol);
+      consola.appendChild(newLine);
+
+      counter++;
+
+    } else if(line.startsWith("ok")) {
+      let newLine = elem_from_str('<div class="linea d-flex flex-row mt-2 mb-4" style="color:#3fc424"></div>');
+      newLine.appendChild(document.createTextNode('OK'))
+      consola.appendChild(newLine);
+
+    } else if(line.startsWith("'ERROR")) {
+
+      let newLine = elem_from_str('<div class="linea d-flex flex-row mt-2 mb-4" style="color: #e53935;"></div>');
+      if(line.startsWith("'ERROR regla'")) {
+        let paso = pasos[counter];
+        let result = originalToPretty(generatePasoScript(paso));
+        newLine.appendChild(document.createTextNode('Error en el paso ' + counter + ':    ' + result));
+      } else if(line.startsWith("'ERROR supuesto'")) {
+        newLine.appendChild(document.createTextNode('Error: Supuesto no cerrado'));
+      } else if(line.startsWith("'ERROR resultado'")) {
+        newLine.appendChild(document.createTextNode('Error: Resultado equivocado'));
+      }createInfoMessage
+      consola.appendChild(newLine);
+
+      hasError = true;
+      counter++;
+
+    } 
+  }
+
+  if(!hasError) {
+    showExportBtn();
+  }
+
+  /*
+  let array = JSON.parse('[["p-->q", 0, "OK"],["q-->r", 0, "OK"],["p-->r", 0, "END"],["Demostracion TT", -2, "OK"]]');
+
+
+  let firstLine = elem_from_str('<div class="linea d-flex flex-row mb-4"></div>');
+  let premisas = createPremisasScript($(deduccion).find('.premisa'));
+  let consecuente = $(deduccion).find('.consecuente')[0].value.trim();
+  firstLine.appendChild(document.createTextNode("T [" + premisas + "]     |-     " + consecuente));
+
+  consola.appendChild(firstLine);
+  
+  // let pasos = deduccion.querySelectorAll('.paso');
+
+  for (let i = 0; i < array.length; i++) {
+    let line = array[i];
+    let string = originalToPretty(line[0]);
+    let code = line[1];
+    let status = line[2];
+    let newLine = null;
+
+    if(status === "OK") {
+      newLine = elem_from_str('<div class="linea d-flex flex-row"></div>');
+    } else if(status === "END") {
+      newLine = elem_from_str('<div class="linea d-flex flex-row" style="color: #3fc424;"></div>');
+    } else if(status === "ERROR") {
+      newLine = elem_from_str('<div class="linea d-flex flex-row" style="color: #e53935;"></div>');
+    }
+
+    if(code >= 0) {
+      let paso = pasos[i];
+      let pasoA = $(paso).find('.pasoA')[0].value;
+      let pasoB = $(paso).find('.pasoB')[0].value;
+      let pasosInputs = $(paso).find('.pasosInputs').find('input');
+      let arrayInputs = [];
+
+      for(let j = 0; j < pasosInputs.length; j++) {
+        arrayInputs.push(pasosInputs[j].value);
+      }
+      let result = "'" + pasoA + "'";
+      if (pasoA == 'E' || pasoA == 'I') {
+        result += pasoB;
+      }
+      result += "(" + arrayInputs + ")";
+      result = originalToPretty(result);
+      let leftCol = elem_from_str('<div class="col-7 resultado"></div>');
+      let rightCol = elem_from_str('<div class="col-5 reglaResult"></div>');
+      leftCol.appendChild(document.createTextNode((i+1) + ". " + string));
+      rightCol.appendChild(document.createTextNode(result));
+      newLine.appendChild(leftCol);
+      newLine.appendChild(rightCol);
+      consola.appendChild(newLine);
+
+    } else if(code < 0) {
+      newLine.appendChild(document.createTextNode(string));
+      newLine.classList.add('my-4')
+      consola.appendChild(newLine);
+    }
+
+  }
+  result.forEach(e => {
+    let string = e[0];
+    let code = e[1];
+    let status = e[2];
+    if(status === "OK") {
+      console.log(string);
+    }
+  })*/
+}
+
+function exportConsoleToLatex() {
+  let consola = document.getElementById('consolaContainer');
+  let lineas = $(consola).find('.linea');
+  let title = $(consola).find('.title')[0].textContent;
+  let result = "\\documentclass{article}\n"
+    + "\\usepackage{graphicx}\n"
+    + "\\usepackage{enumitem}\n"
+    + "\\title{" + title + "}\n\n"
+    + "\\begin{document}\n\n"
+    + "\\maketitle\n\n";
+
+  for (let i = 0; i < lineas.length; i++) {
+    let linea = lineas[i];
+    if(linea.classList.contains('linea-start')) {
+      result += "\\begin{itemize}\n"
+        + "\\item $ " + consolaToLatex(linea.textContent) + " $\n\n"
+        + "\\begin{enumerate}[leftmargin=1cm,rightmargin=2cm,nosep]\n";    
+
+    } else if(linea.classList.contains('linea-start-regla')) {
+      let title = linea.textContent;
+      result += "\\end{enumerate}\n"
+        + "\\end{itemize}\n\n"
+        + "\\section*{" + title + "}\n\n";
+      
+    } else if(linea.classList.contains('linea-regla')) {
+      let index = $(linea).find('.index')[0].textContent;
+      let partA = $(linea).find('.content')[0].textContent;
+      let partB = $(linea).find('.reglaResult')[0].textContent;
+      result += "\\item[" + index + "] \\hspace{" + linea.style.paddingLeft + "} $ "
+        + consolaToLatex(partA) + " $ \\hspace{\\fill} "
+        + consolaToLatexRegla(partB) + "\n";
+      
+    }
+  }
+
+  result += "\\end{enumerate}\n"
+    + "\\end{itemize}\n"
+    + "\\end{document}\n";
+  
+  
+  let file = new Blob([result], {
+    type: 'text/plain'
+  });
+
+  var console_download = document.getElementById('consoleDownload');
+  console_download.href = URL.createObjectURL(file);
+  console_download.download = title + ' LaTeX.txt';
+  console_download.click();
+}
+
+function createInfoMessage(string) {
+  let consola = resetConsola();
+  let newLine = elem_from_str('<div class="linea d-flex flex-row mt-2 mb-4"></div>');
+  newLine.appendChild(document.createTextNode(string));
+  consola.appendChild(newLine);
+}
+
+function createOkMessage(string) {
+  let consola = resetConsola();
+  let newLine = elem_from_str('<div class="linea d-flex flex-row mt-2 mb-4" style="color:#3fc424"></div>');
+  newLine.appendChild(document.createTextNode(string));
+  consola.appendChild(newLine);
+}
+
+function createErrorMessage(string) {
+  let consola = resetConsola();
+  let newLine = elem_from_str('<div class="linea d-flex flex-row mt-2 mb-4" style="color: #e53935;"></div>');
+  newLine.appendChild(document.createTextNode(string));
+  consola.appendChild(newLine);
+}
+
+function resetConsola() {
+  let console = document.getElementById('consolaContainer');
+  let lineas = $(console).find('.linea');
+  lineas.remove();
+  let title = $(console).find('.title');
+  title.remove();
+  return console;
+}
+
+function hideExportBtn() {
+  $('#exportDropdown').find('.dropdown-toggle').removeClass('show');
+  $('#exportDropdown').find('.dropdown-menu').removeClass('show');
+  $('#exportDropdown').addClass('d-none');
+}
+
+function showExportBtn() {
+  $('#exportDropdown').removeClass('d-none');
+}
+
+function generatePasoScript(paso) {
+  let pasoA = $(paso).find('.pasoA')[0].value;
+  let pasoB = $(paso).find('.pasoB')[0].value;
+  let pasosInputs = $(paso).find('.pasosInputs').find('input');
+  let arrayInputs = [];
+
+  for (let j = 0; j < pasosInputs.length; j++) {
+    arrayInputs.push(pasosInputs[j].value);
+  }
+  let result = "'" + pasoA + "'";
+  if (pasoA == 'E' || pasoA == 'I') {
+    result += pasoB;
+  }
+  result += "(" + arrayInputs + ")";
+  return result;
 }
 
 function setAutocomlpeteEvents(input) {
@@ -3302,11 +3577,21 @@ function setAutocompleteEventsPremisas(input) {
     setTimeout(() => {
       $(autocomplete).slideUp();
     }, 100);
+
+    let resultValidate = automataNoRecursion(input.value);
+
+    if(resultValidate[0] == "CORRECT") {
+      input.classList.remove('input-error');
+      return;
+    } else {
+      input.classList.add('input-error');
+    }
+
   });
   
   autocomplete.addEventListener("click", e => {
     if (e.target && e.target.nodeName == "LI") {
-      input.value = e.target.innerHTML;
+      input.value += e.target.dataset.value;
       input.focus();
     }
   });
@@ -3430,7 +3715,7 @@ function findReglaParamNumber(reglaName) {
   let reglas = $('.reglaName');
   for (let i = 0; i < reglas.length; i++) {
     if(reglas[i].value == reglaName) {
-      let cont = $(reglas[i]).closest('.reglaContainer');
+      let cont = $(reglas[i]).closest('.regla');
       return $(cont).find('.premisa').length;
     }
   }
@@ -3442,19 +3727,49 @@ function buildAutocompletePremisas(event, autocomplete) {
   let key = event.target.value;
   if(key == null || key == undefined){
     key = '';
+  } else {
+    key = key.replaceAll('-', '\u00AC');
+    key = key.replaceAll('+', '\u2227');
+    key = key.replaceAll('*', '\u2228');
+    key = key.replaceAll('/', '\u2192');
+    key = key.replaceAll('=', '\u2194');
   }
 
-  let items = [];
-  items.push(key + String.fromCharCode(172));
-  items.push(key + String.fromCharCode(8743));
-  items.push(key + String.fromCharCode(8744));
-  items.push(key + String.fromCharCode(8594));
-  items.push(key + String.fromCharCode(8596));
+  event.target.value = key;
+
+  let resultValidate = automataNoRecursion(key);
 
   autocomplete.innerHTML = '';
-  items.map(item => {
-    autocomplete.innerHTML += '<li class="dropdown-item">' + item + '</li>'
-  });
+
+  if(resultValidate[0] == "ERROR") {
+    event.target.classList.add('input-error');
+    return;
+  } else {
+    event.target.classList.remove('input-error');
+  }
+
+  let nextChars = resultValidate[1];
+
+  if(nextChars.includes("a")) {
+    autocomplete.innerHTML += '<li class="dropdown-item li-autcompl" data-value="" title="Literal"><span>...</span></li>';
+  }
+  if(nextChars.includes("!")) {
+    autocomplete.innerHTML += '<li class="dropdown-item li-autcompl" data-value="\u00AC"><span>\u00AC</span><span class="sc">(-)</span></li>';
+  }
+  if(nextChars.includes("o")) {
+    autocomplete.innerHTML += '<li class="dropdown-item li-autcompl" data-value="\u2227"><span>\u2227</span><span class="sc">(+)</span></li>';
+    autocomplete.innerHTML += '<li class="dropdown-item li-autcompl" data-value="\u2228"><span>\u2228</span><span class="sc">(*)</span></li>';
+    autocomplete.innerHTML += '<li class="dropdown-item li-autcompl" data-value="\u2192"><span>\u2192</span><span class="sc">(/)</span></li>';
+    autocomplete.innerHTML += '<li class="dropdown-item li-autcompl" data-value="\u2194"><span>\u2194</span><span class="sc">(=)</span></li>';  
+  }
+  if(nextChars.includes(")")) {
+    autocomplete.innerHTML += '<li class="dropdown-item li-autcompl" data-value=")"><span>)</span></li>';
+  }
+  if(nextChars.includes("(")) {
+    autocomplete.innerHTML += '<li class="dropdown-item li-autcompl" data-value="("><span>(</span></li>';
+  }
+
+  
 
   $(autocomplete).slideDown();
 }
@@ -3480,12 +3795,12 @@ const inclusion =  '<option value=" \u2227 ">\u2227</option>'
 + '<option value=" \u2192 ">\u2192</option>'
 + '<option value=" \u2194 ">\u2194</option>';
 
-//Sin usar
-function buildAutocompletePasos(event, autocomplete) {
+
+/*function buildAutocompletePasos(event, autocomplete) {
   let key = event.target.value;
   if(key == null || key == undefined || key.trim() == '') {
 
-    /* let items = [];
+    * let items = [];
      * items.push("'Premisa'(A)");
      * items.push("'I' " + String.fromCharCode(8743) + " (A,B)");
      * items.push("'E' " + String.fromCharCode(8743) + " a(A)");
@@ -3501,7 +3816,7 @@ function buildAutocompletePasos(event, autocomplete) {
      * items.push("'I' " + String.fromCharCode(8596) + " (A,B)");
      * items.push("'E' " + String.fromCharCode(8596) + " a(A)");
      * items.push("'E' " + String.fromCharCode(8596) + " b(A)");
-     */
+     *
 
     autocomplete.innerHTML = '';
     items.map(item => {
@@ -3512,11 +3827,11 @@ function buildAutocompletePasos(event, autocomplete) {
   } else {
     $(autocomplete).slideUp();
   }
-}
+}*/
 
 async function createDeduccionUI() {
   if(deduccionHtml == null) {
-    deduccionHtml = await fetchCode("http://localhost:8001/playground/pruebas/deduccion.html");
+    deduccionHtml = await fetchCode(window.location.origin + "/playground/pruebas/deduccion.html");
   }
 
   let deduccion = elem_from_str(deduccionHtml);
@@ -3526,7 +3841,7 @@ async function createDeduccionUI() {
 
 async function createReglaUI() {
   if(reglaHtml == null) {
-    reglaHtml = await fetchCode("http://localhost:8001/playground/pruebas/regla.html");
+    reglaHtml = await fetchCode(window.location.origin + "/playground/pruebas/regla.html");
   }
   
   let regla = elem_from_str(reglaHtml);
@@ -3581,7 +3896,8 @@ function addPaso(button) {
 function deleteInput(button) {
   let container = button.parentNode.parentNode;
   if(container.children.length <= 2) {
-    alert('No se puede borrar el ultimo elemento');
+    $(button.parentNode).find('input').val("");
+    $(button.parentNode).find('select').val("");
   } else {
     button.parentNode.remove();
   }
@@ -3705,16 +4021,12 @@ async function loadFromFile(code) {
   $('.deduccion').remove();
   $('.regla').remove();
 
-  let deducRegex = new RegExp('^[^()\\[\\]:,\\s-]+\\s:-[\\s]*main\\(\\[[^\\[\\]]*][^\\[\\]]*\\[[^\\[\\]]*\\]\\).', 'gm');
+  // let deducRegex = new RegExp('^[^()\\[\\]:,\\s-]+\\s:-[\\s]*main_shell\\(\\[[^\\[\\]]*][^\\[\\]]*\\[[^\\[\\]]*\\]\\).', 'gm');
+  let deducRegex = new RegExp('^[^()\\[\\]:,\\s-]+\\(Shell\\)\\s:-[\\s]*main_shell\\(\\[[^\\[\\]]*][^\\[\\]]*\\[[^\\[\\]]*\\],\\sShell\\).', 'gm');
   let reglaRegex = new RegExp('^regla\\(\'[^\']*\',\\s*\\[[^\\[\\]]*\\],[^\\[\\]]*\\[[^\\[\\]]*\\]\\).', 'gm');
 
   let deducciones = code.match(deducRegex);
   let reglas = code.match(reglaRegex);
-
-  let inputs = $('.premisa, .paso, .consecuente');
-  inputs.each(function(index, element) {
-    setAutocomlpeteEvents(element);
-  });
 
   if(reglas != null) {
     for (let i = 0; i < reglas.length; i++) {
@@ -3739,8 +4051,8 @@ async function loadFromFile(code) {
   if(deducciones != null) {
     for (let i = 0; i < deducciones.length; i++) {
       let el = deducciones[i];
-      let name = el.split(':')[0].trim();
-      let rest = el.split('main')[1];
+      let name = el.split('(Shell) :')[0].trim();
+      let rest = el.split('main_shell')[1];
       let corchRegex = new RegExp('\\[[^\\[\\]]*\\]', 'g');
       let premisas = rest.match(corchRegex)[0].slice(1,-1).split(',');
       let pasosRaw = rest.match(corchRegex)[1].slice(1,-1);
@@ -3754,8 +4066,18 @@ async function loadFromFile(code) {
   } else {
     $('#addDedBtn').click();
   }
+
+  let inputs = $('.premisa, .paso, .consecuente');
+  inputs.each(function(index, element) {
+    setAutocomlpeteEvents(element);
+  });
 }
 
+function checkNombreDeduccion(input) {
+  let value = input.value;
+  value = value.slice(0,1).toLowerCase() + value.slice(1);
+  input.value = value;
+}
 
 // Ejecución
 function createDeduccionScript(deduccion) {
@@ -3764,34 +4086,9 @@ function createDeduccionScript(deduccion) {
   let consecuente = $(deduccion).find('.consecuente')[0].value.trim();
   let pasos = $(deduccion).find('.paso');
 
-  let codePremisas = [];
-  for (let i = 0; i < premisas.length; i++) {
-    let premisa = premisas[i];
-    if(premisa.value.trim() == '') {
-      continue;
-    }
-    codePremisas.push(premisa.value.trim());
-  }
+  let codePremisas = createPremisasScript(premisas);
 
-  let codePasos = [];
-  for (let i = 0; i < pasos.length; i++) {
-    let paso = pasos[i];
-    let pasoA = $(paso).find('.pasoA')[0].value;
-    let pasoB = $(paso).find('.pasoB')[0].value;
-    let pasosInputs = $(paso).find('.pasosInputs').find('input');
-    let arrayInputs = [];
-
-    for(let j = 0; j < pasosInputs.length; j++) {
-      arrayInputs.push(pasosInputs[j].value);
-    }
-    let result = "'" + pasoA + "'";
-    if (pasoA == 'E' || pasoA == 'I') {
-      result += pasoB;
-    }
-    result += "(" + arrayInputs + ")";
-    
-    codePasos.push(result);
-  }
+  let codePasos = createPasosScript(pasos);
 
   if(nombre == '' || consecuente == '' ||
     codePremisas.toString() == '' ||
@@ -3800,12 +4097,17 @@ function createDeduccionScript(deduccion) {
       return '';
     }
 
-  let returnCode = "\n" + nombre + " :- \n\tmain(["
-    + codePremisas.toString() + "], "
-    + consecuente + ", ["
-    + codePasos.toString() + "]).\n";
+    // let returnCode = "\n" + nombre + " :- \n\tmain(["
+    //   + codePremisas.toString() + "], "
+    //   + consecuente + ", ["
+    //   + codePasos.toString() + "]).\n";
 
-  return returnCode;
+    let returnCode = "\n" + nombre + "(Shell) :- \n\tmain_shell(["
+      + codePremisas.toString() + "], "
+      + consecuente + ", ["
+      + codePasos.toString() + "], Shell).\n";
+
+  return prettyToOriginal(returnCode);
 }
 
 function createReglaScript(regla) {
@@ -3814,42 +4116,9 @@ function createReglaScript(regla) {
   let consecuente = $(regla).find('.consecuente')[0].value.trim();
   let pasos = $(regla).find('.paso');
 
-  let codePremisas = [];
-  for (let i = 0; i < premisas.length; i++) {
-    let premisa = premisas[i];
-    if(premisa.value.trim() == '') {
-      continue;
-    }
-    codePremisas.push(premisa.value.trim());
-  }
+  let codePremisas = createPremisasScript(premisas);
 
-  // let codePasos = [];
-  // for (let i = 0; i < pasos.length; i++) {
-  //   let paso = pasos[i];
-  //   if(paso.value.trim() == '') {
-  //     continue;
-  //   }
-  //   codePasos.push(paso.value.trim());
-  // }
-  let codePasos = [];
-  for (let i = 0; i < pasos.length; i++) {
-    let paso = pasos[i];
-    let pasoA = $(paso).find('.pasoA')[0].value;
-    let pasoB = $(paso).find('.pasoB')[0].value;
-    let pasosInputs = $(paso).find('.pasosInputs').find('input');
-    let arrayInputs = [];
-
-    for(let j = 0; j < pasosInputs.length; j++) {
-      arrayInputs.push(pasosInputs[j].value);
-    }
-    let result = "'" + pasoA + "'";
-    if (pasoA == 'E' || pasoA == 'I') {
-      result += pasoB;
-    }
-    result += "(" + arrayInputs + ")";
-    
-    codePasos.push(result);
-  }
+  let codePasos = createPasosScript(pasos);
 
   if(nombre == '' || consecuente == '' ||
     codePremisas.toString() == '' ||
@@ -3863,7 +4132,98 @@ function createReglaScript(regla) {
     + consecuente + ", ["
     + codePasos.toString() + "]).\n";
 
-  return returnCode;
+  return prettyToOriginal(returnCode);
+}
+
+function createPasosScript(pasos) {
+  let codePasos = [];
+  for (let i = 0; i < pasos.length; i++) {
+    let paso = pasos[i];
+    let result = generatePasoScript(paso);
+
+    codePasos.push(result);
+  }
+  return codePasos;
+}
+
+function createPremisasScript(premisas) {
+  let codePremisas = [];
+  for (let i = 0; i < premisas.length; i++) {
+    let premisa = premisas[i];
+    if (premisa.value.trim() == '') {
+      continue;
+    }
+    codePremisas.push(premisa.value.trim());
+  }
+  return codePremisas;
+}
+
+function prettyToOriginal(code) {
+  code = code.replaceAll('\u00AC', ' ! '); 
+  code = code.replaceAll('\u2227', ' and '); 
+  code = code.replaceAll('\u2228', ' or '); 
+  code = code.replaceAll('\u2192', ' --> '); 
+  code = code.replaceAll('\u2194', ' <-> '); 
+  return code;
+}
+
+function originalToPretty(code) {
+  code = code.replaceAll(' ! ', '\u00AC'); 
+  code = code.replaceAll(' and ', '\u2227'); 
+  code = code.replaceAll(' or ', '\u2228'); 
+  code = code.replaceAll(' --> ', '\u2192'); 
+  code = code.replaceAll(' <-> ', '\u2194'); 
+  return code;
+}
+
+function hardOriginalToPretty(code) {
+  code = code.replaceAll(' ! ', ' \u00AC '); 
+  code = code.replaceAll('!', ' \u00AC'); 
+  code = code.replaceAll(' and ', ' \u2227 '); 
+  code = code.replaceAll('and', ' \u2227 '); 
+  code = code.replaceAll(' or ', ' \u2228 '); 
+  code = code.replaceAll('or', ' \u2228 '); 
+  code = code.replaceAll(' --> ', ' \u2192 '); 
+  code = code.replaceAll('-->', ' \u2192 '); 
+  code = code.replaceAll(' <-> ', ' \u2194 '); 
+  code = code.replaceAll('<->', ' \u2194 '); 
+  return code;
+}
+
+function consolaToLatex(code) {
+  //quitar espacios alrededor de los simbolos
+  code = code.replaceAll(/\s*\u00AC\s*/gm, '\u00AC');
+  code = code.replaceAll(/\s*\u2227\s*/gm, '\u2227');
+  code = code.replaceAll(/\s*\u2228\s*/gm, '\u2228'); 
+  code = code.replaceAll(/\s*\u2192\s*/gm, '\u2192');
+  code = code.replaceAll(/\s*\u2194\s*/gm, '\u2194'); 
+  code = code.replaceAll(/\s*\u22A2\s*/gm, '\u22A2'); 
+  //sustituir espacios
+  code = code.replaceAll(' ', '~~');
+  //sustituir simbolos
+  code = code.replaceAll('\u00AC', '\\neg ');
+  code = code.replaceAll('\u2227', '\\land ');
+  code = code.replaceAll('\u2228', '\\lor '); 
+  code = code.replaceAll('\u2192', '\\rightarrow ');  
+  code = code.replaceAll('\u2194', '\\leftrightarrow '); 
+  code = code.replaceAll('\u22A2', '\\vdash ');
+  return code;
+}
+
+function consolaToLatexRegla(code) {
+  if(code.startsWith("'Premisa'"))
+    return "Premisa";
+  if(code.startsWith("'Supuesto'"))
+    return "Supuesto";
+  code = code.replaceAll(' ', '');
+  code = code.replaceAll("'", '');
+  code = code.replaceAll('\u00AC', '_{\\neg}');
+  code = code.replaceAll('\u2227', '_{\\land}');
+  code = code.replaceAll('\u2228', '_{\\lor}'); 
+  code = code.replaceAll('\u2192', '_{\\rightarrow}');  
+  code = code.replaceAll('\u2194', '_{\\leftrightarrow}');
+
+  return "$ " + code + " $";
 }
 
 // function loadDeducciones() {
@@ -3887,10 +4247,22 @@ function loadAll() {
     originalCode = pgVar.get_editor_value();
   }
 
+  hideExportBtn();
   let newCode = generateCode();
-
+  createInfoMessage("Cargando...");
   pgVar.set_code_and_process(originalCode + newCode);
+  timeoutCarga();
 }
+
+function timeoutCarga(){
+  setTimeout(() => {
+    if(pgVar.cproc.state != 0) {
+      timeoutCarga();
+    } else {
+      createOkMessage("Carga correcta")
+    }
+  }, 500);
+} 
 
 function generateCode() {
   let newCode = '';
@@ -3909,18 +4281,34 @@ function generateCode() {
   return newCode;
 }
 
+function generateCodeLatex() {
+  let code = generateCode();
+  code = originalToLatex(code);
+  return code;
+}
+
 async function ejecutar(query){
   let mensaje = query + ':';
-  let result = await pgVar.toplevel.do_query_return(query, {msg:mensaje});
-  if(result.err != "") {
-    alert(result.err);
-  }
-  console.log(result.out);
+  let result = await pgVar.toplevel.do_query(query, {msg:mensaje});
+  // let result = await pgVar.toplevel.do_query_return(query, {msg:mensaje});
+  // if(result.err != "") {
+  //   alert(result.err);
+  // }
+  // console.log(result.out);
+}
+
+async function ejecutarMejora(name) {
+  let deduccion = name.closest('.deduccion');
+  let query = name.value + '(S)';
+  let result = await pgVar.toplevel.do_query_return(query, {msg:query});
+  let data = [deduccion, result];
+  buildResult(data);
 }
 
 function ejecutarDeduccion(button) {
-  let nombre = $(button).closest('.deduccion').find('.deduccionName').val();
-  ejecutar(nombre);
+  // let nombre = $(button).closest('.deduccion').find('.deduccionName').val();
+  let name = $(button).closest('.deduccion').find('.deduccionName')[0];
+  ejecutarMejora(name);
 }
 
 //Utility
@@ -3940,11 +4328,402 @@ function handle_file_upload_custom(event, file_el) {
     const reader = new FileReader();
     reader.onload = (event) => {
       (async() => {
-        await loadFromFile(event.target.result);
+        await loadFromFile(originalToPretty(event.target.result));
         loadAll();
       })();
     };
     reader.readAsText(event.target.files[0]);
     
   }
+}
+
+// async function exportResultLatex(button) {
+//   let query = $(button).closest('.deduccion').find('.deduccionName').val();
+//   let result = await pgVar.toplevel.do_query_return(query, '');
+//   if(result.err != "") {
+//     alert(result.err);
+//   } else {
+//     let latex = originalToLatex(result.out);
+//     copyTextToClipboard(latex);
+//     alert("El siguiente resultado se ha copiado en el portapapeles:\n" + result.out);
+//   }
+//   console.log(result.out);
+// }
+
+function fallbackCopyTextToClipboard(text) {
+  var textArea = document.createElement("textarea");
+  textArea.value = text;
+  
+  // Avoid scrolling to bottom
+  textArea.style.top = "0";
+  textArea.style.left = "0";
+  textArea.style.position = "fixed";
+
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+
+  try {
+    var successful = document.execCommand('copy');
+    var msg = successful ? 'successful' : 'unsuccessful';
+    console.log('Fallback: Copying text command was ' + msg);
+  } catch (err) {
+    console.error('Fallback: Oops, unable to copy', err);
+  }
+
+  document.body.removeChild(textArea);
+}
+
+function copyTextToClipboard(text) {
+  if (!navigator.clipboard) {
+    fallbackCopyTextToClipboard(text);
+    return;
+  }
+  navigator.clipboard.writeText(text).then(function() {
+    console.log('Async: Copying to clipboard was successful!');
+  }, function(err) {
+    console.error('Async: Could not copy text: ', err);
+  });
+}
+
+
+//Autómata
+
+/*function validateExpression(expression) {
+  const unmatchedOpeningParentheses = [];
+
+  // Quitar whitespaces
+  expression = expression.replace(/\s/g, "");
+
+  // Comprobar char a char
+  for (let i = 0; i < expression.length; i++) {
+    let char = expression[i];
+
+    // Comprobar caracteres válidos
+    if (!isNegation(char) && !isOperator(char) && !isParenthesis(char) && !isAlphanumeric(char)) {
+      return false;
+    }
+
+    // Comprobar paréntesis
+    if (isOpeningParenthesis(char)) {
+      unmatchedOpeningParentheses.push(char);
+    } else if (isClosingParenthesis(char)) {
+      if (unmatchedOpeningParentheses.length === 0) {
+        return false; // Falta paréntesis de apertura
+      }
+      unmatchedOpeningParentheses.pop();
+    }
+
+    // Comprobar lógica con char anterior
+    // if(i > 0) {
+    //   let prevChar = expression[i-1];
+    //   if(isOperator(char) && 
+    //       !(isAlphanumeric(prevChar) || isClosingParenthesis(char))) {
+    //     return false;
+    //   } else if(isNegation(char) && 
+    //       !(isOperator(prevChar) || isNegation(prevChar) || isOpeningParenthesis(prevChar))) {
+    //     return false;
+    //   } else if(isAlphanumeric(char) && isClosingParenthesis(prevChar)) {
+    //     return false;
+    //   } else if(isOpeningParenthesis(char) &&
+    //       !()) {
+    //     return false;
+    //   } else if(isClosingParenthesis(char) &&
+    //       !()) {
+    //     return false;
+    //   }
+    // }
+  }
+
+  // Comprobar que no queden paréntesis sin cerrar
+  if (unmatchedOpeningParentheses.length !== 0) {
+    return false;
+  }
+
+  return true;
+}*/
+
+/* function checkAutomata(string) {
+//   var charArray = Array.from(string.replace(" ","")).reverse();
+//   var stack = [];
+
+//   stack.push('X');
+//   var result = automataState0(charArray, stack);
+// }
+
+// function automataState0(charArray, stack) {
+//   var currentChar = checkTop(charArray);
+//   var currentStack = checkTop(stack);
+
+//   if(isOpeningParenthesis(currentChar)) {
+//     stack.push('P');
+//     charArray.pop();
+//     return automataState0(charArray, stack);
+  
+//   } else if(isAlphanumeric(currentChar)) {
+//     charArray.pop();
+//     return automataState1(charArray, stack);
+
+//   } else if(isNegation(currentChar)) {
+//     charArray.pop();
+//     return automataState2(charArray, stack);    
+  
+//   } else if(currentChar == null){
+//     return ["CONTINUE", ["a", "!", "("]]
+//   } else {
+//     return ["ERROR"]
+//   }
+  
+// }
+
+// function automataState1(charArray, stack) {
+//   var currentChar = checkTop(charArray);
+//   var currentStack = checkTop(stack);
+
+//   if(isAlphanumeric(currentChar)) {
+//     charArray.pop();
+//     return automataState1(charArray, stack);
+
+//   } else if(isOperator(currentChar)) {
+//     charArray.pop();
+//     return automataState0(charArray, stack);
+
+//   } else if(isClosingParenthesis(currentChar)
+//     && currentStack == 'P') {
+//     stack.pop();
+//     charArray.pop();
+//     return automataState3(charArray, stack);
+
+//   } else if(currentChar == null && currentStack == 'X') {
+//     return ["CORRECT", ["a", "v"]]
+//   } else if(currentChar == null){
+//     return ["CONTINUE", ["a", "v", ")"]]
+//   } else {
+//     return ["ERROR"]
+//   }
+  
+// }
+
+// function automataState2(charArray, stack) {
+//   var currentChar = checkTop(charArray);
+//   var currentStack = checkTop(stack);
+
+//   if(isAlphanumeric(currentChar)) {
+//     charArray.pop();
+//     return automataState1(charArray, stack);
+
+//   } else if(isOpeningParenthesis(currentChar)) {
+//     stack.push('P');
+//     charArray.pop();
+//     return automataState0(charArray, stack);
+
+//   } else if(currentChar == null){
+//     return ["CONTINUE", ["a", "("]]
+//   } else {
+//     return ["ERROR"]
+//   }
+  
+// }
+
+// function automataState3(charArray, stack) {
+//   var currentChar = checkTop(charArray);
+//   var currentStack = checkTop(stack);
+
+//   if(isOperator(currentChar)) {
+//     charArray.pop();
+//     return automataState0(charArray, stack);
+
+//   } else if(isClosingParenthesis(currentChar)
+//     && currentStack == 'P') {
+//     charArray.pop();
+//     stack.pop();
+//     return automataState3(charArray, stack);
+
+//   } else if(currentChar == null && currentStack == 'X') { //no queda string
+//     return ["CORRECT", ["a", "v"]]
+//   } else if(currentChar == null){
+//     return ["CONTINUE", ["a", "v", ")"]]
+//   } else {
+//     return ["ERROR"]
+//   }
+  
+// }*/
+
+function automataNoRecursion(string) {
+  var charArray = Array.from(string).reverse();
+  var stack = ['X'];
+  var state = 0;
+  var result = null;
+  var counter = 0;
+
+  while(result == null) {
+
+    var currentChar = checkTop(charArray);
+    var currentStack = checkTop(stack);
+    switch(state) {
+      case 0: {
+        if(currentChar == " ") {
+          charArray.pop();
+
+        } else if(isOpeningParenthesis(currentChar)) {
+          stack.push('P');
+          charArray.pop();
+          state = 0;
+        
+        } else if(isAlphanumeric(currentChar)) {
+          charArray.pop();
+          state = 1;
+      
+        } else if(isNegation(currentChar)) {
+          charArray.pop();
+          state = 2;    
+        
+        } else if(currentChar == null && currentStack == "X") {
+          result = ["CORRECT", ["a", "!", "("]];
+        } else if(currentChar == null) {
+          result = ["CONTINUE", ["a", "!", "("]];
+        } else {
+          result = ["ERROR", counter];
+        }
+      } break;
+      
+      case 1: {
+        if(currentChar == " ") {
+          charArray.pop();
+          state = 4;
+
+        } else if(isAlphanumeric(currentChar)) {
+          charArray.pop();
+          state = 1;
+      
+        } else if(isOperator(currentChar)) {
+          charArray.pop();
+          state = 0;
+      
+        } else if(isClosingParenthesis(currentChar)
+          && currentStack == 'P') {
+          stack.pop();
+          charArray.pop();
+          state = 3;
+      
+        } else if(currentChar == null && currentStack == 'X') {
+          result = ["CORRECT", ["a", "o"]];
+        } else if(currentChar == null) {
+          result = ["CONTINUE", ["a", "o", ")"]];
+        } else {
+          result = ["ERROR", counter];
+        }
+      } break;
+
+      case 2: {
+        if(currentChar == " ") {
+          charArray.pop();
+
+        } else if(isAlphanumeric(currentChar)) {
+          charArray.pop();
+          state = 1;
+      
+        } else if(isOpeningParenthesis(currentChar)) {
+          stack.push('P');
+          charArray.pop();
+          state = 0;
+      
+        } else if(currentChar == null) {
+          result = ["CONTINUE", ["a", "("]];
+        } else {
+          result = ["ERROR", counter];
+        }
+      } break;
+
+      case 3: {
+        if(currentChar == " ") {
+          charArray.pop();
+
+        } else if(isOperator(currentChar)) {
+          charArray.pop();
+          state = 0;
+      
+        } else if(isClosingParenthesis(currentChar)
+          && currentStack == 'P') {
+          charArray.pop();
+          stack.pop();
+          state = 3;
+      
+        } else if(currentChar == null && currentStack == 'X') { //no queda string
+          result = ["CORRECT", ["a", "o"]];
+        } else if(currentChar == null) {
+          result = ["CONTINUE", ["a", "o", ")"]];
+        } else {
+          result = ["ERROR", counter];
+        }
+      } break;
+
+      case 4: {
+        if(currentChar == " ") {
+          charArray.pop();
+
+        } else if(isOperator(currentChar)) {
+          charArray.pop();
+          state = 0;
+      
+        } else if(isClosingParenthesis(currentChar)
+          && currentStack == 'P') {
+          stack.pop();
+          charArray.pop();
+          state = 3;
+      
+        } else if(currentChar == null && currentStack == 'X') {
+          result = ["CORRECT", ["o"]];
+        } else if(currentChar == null) {
+          result = ["CONTINUE", ["o", ")"]];
+        } else {
+          result = ["ERROR", counter];
+        }
+      } break; 
+
+      default:
+        result = ["ERROR", -1];
+        break;
+    }
+
+    counter++;
+  }
+
+  return result;
+
+}
+
+function checkTop(array) {
+  if(array.length == 0) {
+    return null;
+  } else {
+    return array[array.length - 1]
+  }
+}
+
+function isAlphanumeric(char) {
+  if(char == null) {
+    return false;
+  }
+  return /^[a-zA-Z\u00C0-\u024F0-9]+$/.test(char);
+}
+
+function isOperator(char) {
+  return ["\u2227", "\u2228", "\u2192", "\u2194"].includes(char);
+}
+
+function isNegation(char) {
+  return char === "\u00AC";
+}
+
+function isParenthesis(char) {
+  return isOpeningParenthesis(char) || isClosingParenthesis(char);
+}
+
+function isOpeningParenthesis(char) {
+  return char === "(";
+}
+
+function isClosingParenthesis(char) {
+  return char === ")";
 }

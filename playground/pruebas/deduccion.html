@@ -2,13 +2,19 @@
         
     <div class="d-flex p-2 mb-3">
         <input type="text" 
-            class="form-control deduccionName me-5" 
+            class="form-control deduccionName me-4" 
+            onchange="checkNombreDeduccion(this)"
             placeholder="Nombre del ejercicio">
         <button type="button" 
             class="btn btn-secondary mx-2 btnEjecutar"
             onclick="ejecutarDeduccion(this)">
             <i class="fa-solid fa-play" style="color: #3fc424;"></i>
         </button>
+        <!-- <button type="button" 
+            class="btn btn-secondary mx-2 btnExport"
+            onclick="exportResultLatex(this)">
+            <i class="fa-solid fa-file-export" style="color: #dfdfdf;"></i>
+        </button> -->
         <button type="button" 
             class="btn btn-secondary mx-2" 
             onclick="$(this).closest('.deduccion').remove()">
@@ -29,8 +35,7 @@
             <div class="d-flex p-2">
                 <div class="w-100">
                     <input type="text" 
-                        class="form-control premisa" 
-                        onchange="checkPremisa(this);">
+                        class="form-control premisa" >
                     <ul class="dropdown-menu"></ul>
                 </div>
                 <a class="ms-3 m-auto" 
@@ -51,15 +56,22 @@
 
         <h4 class="mt-5">Consecuente</h4>
 
-        <div class="consecuenteContainer p-2 pe-5">
-            <input type="text" 
-                class="form-control consecuente" 
-                onchange="checkConsecuente(this);">
-            <ul class="dropdown-menu"></ul>
+        <div class="consecuenteContainer">
+            <div class="d-flex p-2">
+                <div class="w-100">
+                    <input type="text" 
+                        class="form-control consecuente">
+                    <ul class="dropdown-menu"></ul>
+                </div>
+                <a class="ms-3 m-auto" 
+                    onclick="deleteInput(this);">
+                    <i class="fa-solid fa-xmark" style="color: #e53935;"></i>
+                </a>
+            </div>
         </div>
 
         
-        <h4 class="mt-5">Pasos</h4>
+        <h4 class="mt-5">Demostración</h4>
 
         <div class="pasosContainer">
 
@@ -74,8 +86,7 @@
 
 
                     <!-- <input type="text" 
-                        class="form-control paso" 
-                        onchange="checkPaso(this);">
+                        class="form-control paso">
                     <ul class="dropdown-menu"></ul> -->
                 </div>
                 <div class="col-3" style="width: 18%;">

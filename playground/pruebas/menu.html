@@ -1,19 +1,18 @@
-<div class="main-menu">
+<div class="main-menu py-2 px-3">
 	<button class="menu-button p-2" 
-        title="New code"
         onclick="if(confirm('¿Descartar todo el código actual?'))newReset()">
-        New&nbsp;<i class="fa-solid fa-file"></i>
+        Nuevo&nbsp;<i class="fa-solid fa-file"></i>
     </button>
 	<label class="openBtn p-2 w-auto">
 		<input type="file" accept=".dn"
             class="file-upload"
             onchange="handle_file_upload_custom(event, this)">
-        Open&nbsp;<i class="fa-solid fa-folder-open"></i>
+        Abrir&nbsp;<i class="fa-solid fa-folder-open"></i>
     </label>
     <button class="menu-button saveBtn p-2">
     </button>
     <button class="menu-button p-2" 
-        title="Cargar deducciones y reglas" 
+        title="Cargar las deducciones y reglas para su ejecución"
         onclick="loadAll()">
         Cargar&nbsp;<i class="fa-solid fa-play"></i>
     </button>

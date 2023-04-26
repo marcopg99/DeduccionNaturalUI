@@ -15,7 +15,7 @@
 
 function importScript(src, is_async = false) {
   let el = document.createElement('script');
-  el.src = '/DeduccionNaturalUI' + src;
+  el.src = src;
   el.async = is_async;
   document.head.appendChild(el);
 }
@@ -23,7 +23,7 @@ function importCSS(src) {
   let el = document.createElement('link');
   el.rel = 'stylesheet';
   el.type = "text/css";
-  el.href = '/DeduccionNaturalUI' + src;
+  el.href = src;
   document.head.appendChild(el);
 }
 
@@ -440,4 +440,3 @@ function update_github_stars_theme() {
   window.github_stars_el['dark'].style.display = dark ? "inline-block" : "none";
   window.github_stars_el['light'].style.display = (!dark) ? "inline-block" : "none";
 }
-
