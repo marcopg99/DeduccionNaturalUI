@@ -4076,6 +4076,7 @@ async function loadFromFile(code) {
 function checkNombreDeduccion(input) {
   let value = input.value;
   value = value.slice(0,1).toLowerCase() + value.slice(1);
+  value = value.replaceAll(' ', '_');
   input.value = value;
 }
 
