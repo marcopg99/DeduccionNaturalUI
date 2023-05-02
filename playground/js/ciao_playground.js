@@ -3304,6 +3304,7 @@ function buildResult(result) {
 
     } else if(line.startsWith("'START Regla'")) {
       let reglaName = line.slice(15).split(",")[0];
+      reglaName = reglaName.replaceAll("'", "");
       auxRegla = $('.reglaName').filter(function(index, elem) {
           return elem.value == reglaName;
         }).closest('.reglaContainer')[0];
@@ -4077,6 +4078,11 @@ function checkNombreDeduccion(input) {
   let value = input.value;
   value = value.slice(0,1).toLowerCase() + value.slice(1);
   value = value.replaceAll(' ', '_');
+  input.value = value;
+}
+
+function checkNombreRegla(input) {
+  let value = input.value.replaceAll("'", '');
   input.value = value;
 }
 
