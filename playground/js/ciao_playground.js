@@ -3303,7 +3303,7 @@ function buildResult(result) {
       consola.appendChild(firstLine);
 
     } else if(line.startsWith("'START Regla'")) {
-      let reglaName = line.slice(15).split(",")[0].slice(1,-1);
+      let reglaName = line.slice(15).split(",")[0];
       auxRegla = $('.reglaName').filter(function(index, elem) {
           return elem.value == reglaName;
         }).closest('.reglaContainer')[0];
