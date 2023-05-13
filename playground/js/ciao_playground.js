@@ -587,7 +587,6 @@ class PGCell {
   }
 
   #setup_custom() {
-    // load_deduccion_natural(this);
     loadCustomUI(this);
   }
 
@@ -1256,6 +1255,7 @@ const github_hash = '#https://github.com/';
 
 /* Initial editor value (splash, URI encoded, URL from a CDN, etc.) */
 async function initial_editor_value() { //CAMBIADO CODIGO PLAYGROUND
+
   // if (document.location.hash.startsWith(github_hash)) {
   //   return await fetch_from_github();
   // } else if (document.URL.includes('#')) { // Code in the URL
@@ -1270,7 +1270,7 @@ async function initial_editor_value() { //CAMBIADO CODIGO PLAYGROUND
   //     return playgroundCfg.splash_code;
   //   }
   // }
-  console.log(window.location.origin + "/playground/pruebas/deduccionNaturalShell.pl");
+  
   let code = await fetchCode(window.location.origin + "/playground/pruebas/deduccionNaturalShell.pl");
   originalCode = code;
 
@@ -1574,6 +1574,8 @@ class ToplevelProc {
     await this.treat_sol(q_out, tr.treat_outerr); // print solution
   }
 
+
+  // Ejecutar query devolviendo el resultado
   async run_query_return(comint, query, opts) {
     if (this.state !== QueryState.READY) {
       console.log('bug: already running or validating a query'); // TODO: treat_enter too fast?
@@ -2748,6 +2750,8 @@ class Comint {
     await cproc.run_query(this, q, opts);
   }
 
+
+  // Ejecutar query devolviendo el resultado
   async do_query_return(q, opts) {
     const cproc = this.pg.cproc;
     if (cproc.state === QueryState.RUNNING) {
@@ -3183,61 +3187,59 @@ window.onload = function () {
 
 
 
+//***************************************************************************************************
+//******************************** INTERFAZ DEDUCCION NATURAL ***************************************
+//***************************************************************************************************
 
 
+// ****************** VARIABLES **********************
 
-// Variables
+// Almacenar el objeto del playground para acceder a sus funciones
 var pgVar = null;
+// Almacenar el codigo limpio de deduccionNatural
 var originalCode = null;
+// Almacenar el codigo html de cada bloque deduccion
 var deduccionHtml = null;
+// Almacenar el codigo html de cada bloque regla
 var reglaHtml = null;
 
-// UI
+
+
+//************** GENERACION DE LA UI *********************
 async function loadCustomUI(pg) {
 
+  // Guardar el objeto del playground
   pgVar = pg;
 
   let mainDiv = elem_from_str('<div class="d-flex" style="height: 90%;"></div>');
-  // let mainDiv = document.createElement('div');
-  // mainDiv.classList.add('d-flex', 'h-100');
-
 
   //COLUMNA DEDUCCIONES
   let deducDiv = elem_from_str('<div class="mt-2 px-3 col-4 deduccionContainer" style="overflow-y: scroll;"></div>');
-  // let deducDiv = document.createElement('div');
-  // deducDiv.classList.add('mt-2', 'mb-5', 'px-3', 'col-4', 'deduccionContainer');
 
   let deduccion = await createDeduccionUI();
   let addButton = elem_from_str('<div class="my-3"><button id="addDedBtn" class="btn btn-primary" onclick="addDeduccion(this)">Nueva deduccion</button></div>');
-  // let loadButton = elem_from_str('<div class="my-3"><button class="btn btn-primary" onclick="loadDeducciones()">Cargar deducciones</button></div>');
 
   deducDiv.appendChild(deduccion);
   deducDiv.appendChild(addButton);
-  // deducDiv.appendChild(loadButton);
 
 
   //COLUMNA REGLAS
   let relgaDiv = elem_from_str('<div class="mt-2 px-3 col-4 reglaContainer" style="overflow-y: scroll;"></div>');
-  // let relgaDiv = document.createElement('div');
-  // relgaDiv.classList.add('mt-2', 'mb-5', 'px-3', 'col-4', 'reglaContainer');
 
   let relga = await createReglaUI();
   let addButtonR = elem_from_str('<div class="my-3"><button id="addRegBtn" class="btn btn-primary" onclick="addRegla(this)">Nueva regla</button></div>');
-  // let loadButtonAll = elem_from_str('<div class="my-3"><button class="btn btn-primary" onclick="loadAll()">Cargar todo</button></div>');
 
   relgaDiv.appendChild(relga);
   relgaDiv.appendChild(addButtonR);
-  // relgaDiv.appendChild(loadButtonAll);
 
 
   //COLUMNA CONSOLA
   let consolaHtml = elem_from_str(await fetchCode(window.location.origin + "/playground/pruebas/consola.html"));
-  // let consolaHtml = elem_from_str('<div class="mt-2 mb-5 px-3 col-4 consolaContainer"></div>');
-  // consolaHtml.appendChild(pgVar.toplevel_el);
 
 
   //MENU
   let menuDiv = elem_from_str(await fetchCode(window.location.origin + "/playground/pruebas/menu.html"));
+  // Construccion boton save
   let saveBtn = menuDiv.getElementsByClassName('saveBtn')[0];
   var a_download = elem_from_str(`<a href="" style="text-decoration: none; color: inherit;">Guardar <i class="fa-solid fa-download"></i></a>`);
   saveBtn.addEventListener('click', function(e) {
@@ -3256,7 +3258,7 @@ async function loadCustomUI(pg) {
   })
   saveBtn.appendChild(a_download);
 
-
+  // Incluir UI en la pagina
   let body = document.getElementsByTagName('body')[0];
   mainDiv.append(deducDiv);
   mainDiv.append(relgaDiv);
@@ -3265,13 +3267,14 @@ async function loadCustomUI(pg) {
   body.insertBefore(menuDiv, body.firstChild);
 
 
-
+  // Generar desplegables para premisas, pasos y consecuentes
   let inputs = $('.premisa, .paso, .consecuente');
   inputs.each(function(index, element) {
-    setAutocomlpeteEvents(element);
+    setInputsEvents(element);
   });
 }
 
+//Construye el resultado de la demostracioin en la consola
 function buildResult(result) {
 
   let consola = resetConsola();
@@ -3283,15 +3286,22 @@ function buildResult(result) {
   let pasos;
   let counter;
   let hasError = false;
+  
+  //Esconder boton export (solo disponible si no hay errores)
   hideExportBtn();
 
+  //Linea con el titulo
   let title = "Demostraci\u00F3n " + $(result[0]).find(".deduccionName")[0].value;
   let titleLine = elem_from_str('<div class="title d-flex flex-row mb-2"></div>');
   titleLine.appendChild(document.createTextNode(title));
   consola.appendChild(titleLine);
 
+  //Bucle para imprimir resultado
   for(let i = 0; i < split.length; i++) {
+	
     let line = originalToPretty(split[i]);
+    
+    //Linea de comienzo de demostracion
     if(line.startsWith("'START'")) {
       let premisas = createPremisasScript($(deduccion).find('.premisa'));
       let consecuente = $(deduccion).find('.consecuente')[0].value.trim();
@@ -3302,6 +3312,7 @@ function buildResult(result) {
       firstLine.appendChild(document.createTextNode("T [" + premisas + "]     \u22A2     " + consecuente));
       consola.appendChild(firstLine);
 
+	//Linea de comienzo de demostracion regla derivada
     } else if(line.startsWith("'START Regla'")) {
       let reglaName = line.slice(15).split(",")[0];
       reglaName = reglaName.replaceAll("'", "");
@@ -3320,6 +3331,7 @@ function buildResult(result) {
       consola.appendChild(firstLine);
       consola.appendChild(secondLine);
 
+	//Linea con un paso de la demostracion
     } else if(line.startsWith("'REGLA")) {
       let stringResult = hardOriginalToPretty(line.slice(9).split(",")[2]);
       let tabs = parseInt(line.slice(9).split(",")[1]);
@@ -3341,11 +3353,13 @@ function buildResult(result) {
 
       counter++;
 
+	//Linea para demostracion terminada con exito
     } else if(line.startsWith("ok")) {
       let newLine = elem_from_str('<div class="linea d-flex flex-row mt-2 mb-4" style="color:#3fc424"></div>');
       newLine.appendChild(document.createTextNode('OK'))
       consola.appendChild(newLine);
 
+	//Linea para errores
     } else if(line.startsWith("'ERROR")) {
 
       let newLine = elem_from_str('<div class="linea d-flex flex-row mt-2 mb-4" style="color: #e53935;"></div>');
@@ -3357,7 +3371,7 @@ function buildResult(result) {
         newLine.appendChild(document.createTextNode('Error: Supuesto no cerrado'));
       } else if(line.startsWith("'ERROR resultado'")) {
         newLine.appendChild(document.createTextNode('Error: Resultado equivocado'));
-      }createInfoMessage
+      }
       consola.appendChild(newLine);
 
       hasError = true;
@@ -3366,83 +3380,20 @@ function buildResult(result) {
     } 
   }
 
+  //Si no hay error muestro el boton de exportar
   if(!hasError) {
     showExportBtn();
   }
 
-  /*
-  let array = JSON.parse('[["p-->q", 0, "OK"],["q-->r", 0, "OK"],["p-->r", 0, "END"],["Demostracion TT", -2, "OK"]]');
-
-
-  let firstLine = elem_from_str('<div class="linea d-flex flex-row mb-4"></div>');
-  let premisas = createPremisasScript($(deduccion).find('.premisa'));
-  let consecuente = $(deduccion).find('.consecuente')[0].value.trim();
-  firstLine.appendChild(document.createTextNode("T [" + premisas + "]     |-     " + consecuente));
-
-  consola.appendChild(firstLine);
-  
-  // let pasos = deduccion.querySelectorAll('.paso');
-
-  for (let i = 0; i < array.length; i++) {
-    let line = array[i];
-    let string = originalToPretty(line[0]);
-    let code = line[1];
-    let status = line[2];
-    let newLine = null;
-
-    if(status === "OK") {
-      newLine = elem_from_str('<div class="linea d-flex flex-row"></div>');
-    } else if(status === "END") {
-      newLine = elem_from_str('<div class="linea d-flex flex-row" style="color: #3fc424;"></div>');
-    } else if(status === "ERROR") {
-      newLine = elem_from_str('<div class="linea d-flex flex-row" style="color: #e53935;"></div>');
-    }
-
-    if(code >= 0) {
-      let paso = pasos[i];
-      let pasoA = $(paso).find('.pasoA')[0].value;
-      let pasoB = $(paso).find('.pasoB')[0].value;
-      let pasosInputs = $(paso).find('.pasosInputs').find('input');
-      let arrayInputs = [];
-
-      for(let j = 0; j < pasosInputs.length; j++) {
-        arrayInputs.push(pasosInputs[j].value);
-      }
-      let result = "'" + pasoA + "'";
-      if (pasoA == 'E' || pasoA == 'I') {
-        result += pasoB;
-      }
-      result += "(" + arrayInputs + ")";
-      result = originalToPretty(result);
-      let leftCol = elem_from_str('<div class="col-7 resultado"></div>');
-      let rightCol = elem_from_str('<div class="col-5 reglaResult"></div>');
-      leftCol.appendChild(document.createTextNode((i+1) + ". " + string));
-      rightCol.appendChild(document.createTextNode(result));
-      newLine.appendChild(leftCol);
-      newLine.appendChild(rightCol);
-      consola.appendChild(newLine);
-
-    } else if(code < 0) {
-      newLine.appendChild(document.createTextNode(string));
-      newLine.classList.add('my-4')
-      consola.appendChild(newLine);
-    }
-
-  }
-  result.forEach(e => {
-    let string = e[0];
-    let code = e[1];
-    let status = e[2];
-    if(status === "OK") {
-      console.log(string);
-    }
-  })*/
 }
 
+//Generar el archivo en formato LaTeX
 function exportConsoleToLatex() {
   let consola = document.getElementById('consolaContainer');
   let lineas = $(consola).find('.linea');
   let title = $(consola).find('.title')[0].textContent;
+  
+  //Cabecera
   let result = "\\documentclass{article}\n"
     + "\\usepackage{graphicx}\n"
     + "\\usepackage{enumitem}\n"
@@ -3452,17 +3403,22 @@ function exportConsoleToLatex() {
 
   for (let i = 0; i < lineas.length; i++) {
     let linea = lineas[i];
+    
+    //Comienzo demostracion
     if(linea.classList.contains('linea-start')) {
       result += "\\begin{itemize}\n"
         + "\\item $ " + consolaToLatex(linea.textContent) + " $\n\n"
         + "\\begin{enumerate}[leftmargin=1cm,rightmargin=2cm,nosep]\n";    
 
+	//Comienzo demostracion regla derivada
     } else if(linea.classList.contains('linea-start-regla')) {
       let title = linea.textContent;
+      //Termino enumerate e itemize anteriores y comienzo una seccion nueva
       result += "\\end{enumerate}\n"
         + "\\end{itemize}\n\n"
         + "\\section*{" + title + "}\n\n";
       
+    //Paso de la demostracion
     } else if(linea.classList.contains('linea-regla')) {
       let index = $(linea).find('.index')[0].textContent;
       let partA = $(linea).find('.content')[0].textContent;
@@ -3474,11 +3430,12 @@ function exportConsoleToLatex() {
     }
   }
 
+  //Final del documento
   result += "\\end{enumerate}\n"
     + "\\end{itemize}\n"
     + "\\end{document}\n";
   
-  
+  //Descarga automatica del txt
   let file = new Blob([result], {
     type: 'text/plain'
   });
@@ -3489,6 +3446,7 @@ function exportConsoleToLatex() {
   console_download.click();
 }
 
+//Mensaje generico para la consola, color blanco
 function createInfoMessage(string) {
   let consola = resetConsola();
   let newLine = elem_from_str('<div class="linea d-flex flex-row mt-2 mb-4"></div>');
@@ -3496,6 +3454,7 @@ function createInfoMessage(string) {
   consola.appendChild(newLine);
 }
 
+//Mensaje generico para la consola, color verde
 function createOkMessage(string) {
   let consola = resetConsola();
   let newLine = elem_from_str('<div class="linea d-flex flex-row mt-2 mb-4" style="color:#3fc424"></div>');
@@ -3503,6 +3462,7 @@ function createOkMessage(string) {
   consola.appendChild(newLine);
 }
 
+//Mensaje generico para la consola, color rojo
 function createErrorMessage(string) {
   let consola = resetConsola();
   let newLine = elem_from_str('<div class="linea d-flex flex-row mt-2 mb-4" style="color: #e53935;"></div>');
@@ -3510,6 +3470,7 @@ function createErrorMessage(string) {
   consola.appendChild(newLine);
 }
 
+//Borrar consola
 function resetConsola() {
   let console = document.getElementById('consolaContainer');
   let lineas = $(console).find('.linea');
@@ -3519,16 +3480,19 @@ function resetConsola() {
   return console;
 }
 
+//Esconder boton exportar
 function hideExportBtn() {
   $('#exportDropdown').find('.dropdown-toggle').removeClass('show');
   $('#exportDropdown').find('.dropdown-menu').removeClass('show');
   $('#exportDropdown').addClass('d-none');
 }
 
+//Mostrar boton exportar
 function showExportBtn() {
   $('#exportDropdown').removeClass('d-none');
 }
 
+//Genera el script para prolog de un paso de la demostracion
 function generatePasoScript(paso) {
   let pasoA = $(paso).find('.pasoA')[0].value;
   let pasoB = $(paso).find('.pasoB')[0].value;
@@ -3546,32 +3510,31 @@ function generatePasoScript(paso) {
   return result;
 }
 
-function setAutocomlpeteEvents(input) {
+//Vincula los eventos necesarios para premisas, consecuentes y pasos
+function setInputsEvents(input) {
   if($(input).hasClass('premisa') 
     || $(input).hasClass('consecuente')) {
-
-      setAutocompleteEventsPremisas(input);
-
+      setAutocompleteEvents(input);
   } else if ($(input).hasClass('paso')) {
-    
-    setAutocompleteEventsPasos(input);
-
+    setEventsPasos(input);
   }
 }
 
-function setAutocompleteEventsPremisas(input) {
+//Genera el autocomplete para el input
+//necesita un <ul class='dropdown-menu'> debajo del input
+function setAutocompleteEvents(input) {
 
   let autocomplete = input.parentNode.querySelector('.dropdown-menu');
     
   input.addEventListener('focus',  (event) =>  {
-    buildAutocompletePremisas(event, autocomplete);
+    buildAutocomplete(event, autocomplete);
     setTimeout(() => {
       $(autocomplete).slideDown();
     }, 100);
   });
 
   input.addEventListener('keyup',  (event) =>  {
-    buildAutocompletePremisas(event, autocomplete);
+    buildAutocomplete(event, autocomplete);
   });
 
   input.addEventListener('blur', () => {
@@ -3599,7 +3562,8 @@ function setAutocompleteEventsPremisas(input) {
 
 }
 
-function setAutocompleteEventsPasos(container) {
+//Genera los eventos necesarios para los inputs variables en los pasos
+function setEventsPasos(container) {
   let pasoA = $(container).find('.pasoA')[0];
   let pasoB = $(container).find('.pasoB')[0];
   let pasosInputs = $(container).find('.pasosInputs')[0];
@@ -3620,29 +3584,9 @@ function setAutocompleteEventsPasos(container) {
     buildPasosInputs(pasosInputs, pasoA.value + pasoB.value);
   })
 
-
-  // let autocomplete = input.parentNode.querySelector('.dropdown-menu');
-
-  // input.addEventListener('focus',  (event) =>  {
-  //   buildAutocompletePasos(event, autocomplete);
-  // })
-  // input.addEventListener('keyup',  (event) =>  {
-  //   buildAutocompletePasos(event, autocomplete);
-  // })
-  // input.addEventListener('blur', () => {
-  //   setTimeout(() => {
-  //     $(autocomplete).slideUp();
-  //   }, 100);
-  // })
-  
-  // autocomplete.addEventListener("click", e => {
-  //   if (e.target && e.target.nodeName == "LI") {
-  //     input.value = e.target.innerHTML;
-  //     input.focus();
-  //   }
-  // });
 }
 
+//Rellena el primer desplegable con las reglas básicas y derivadas
 function buildPasoA(pasoA) {
   let options = [];
   $(".reglaName").each(function() {
@@ -3656,6 +3600,7 @@ function buildPasoA(pasoA) {
   });
 }
 
+//Rellena el segundo desplegable con las opciones de eliminacion o inclusion
 function buildPasoB(pasoB, pasoA) {
   if(pasoA.value == 'E') {
     pasoB.innerHTML = eliminacion;
@@ -3669,49 +3614,66 @@ function buildPasoB(pasoB, pasoA) {
   }
 }
 
+//Genera el numero adecuado de inputs para cada regla
+//Para los supuestos tambien mete el autocomplete
 function buildPasosInputs(pasosInputs, regla) {
   let inputs = $(pasosInputs).find('input')
   let firstInput = inputs[0];
-  let currentQty = inputs.length;
   var counter = 1;
+  let esSupuesto = false;
   switch (regla) {
-    case 'E \u2228 ':
+    case 'E \u2228 ': //E or
       counter = 3;
       break;
-    case 'I \u2227 ':
-    case 'I \u2228 a':
-    case 'I \u2228 b':
-    case 'E \u2192 ':
-    case 'I \u2192 ':
-    case 'I \u2194 ':
+    case 'I \u2227 ': //I and
+    case 'I \u2228 a': //I or Izq
+    case 'I \u2228 b': //I or Der
+    case 'E \u2192 ': //E -->
+    case 'I \u2192 ': //I -->
+    case 'I \u2194 ': //I <->
       counter = 2;
       break;
     case 'Premisa':
-    case 'Supuesto':
-    case 'E \u2227 a':
-    case 'E \u2227 b':
-    case 'I \u00AC ':
-    case 'E \u00AC ':
-    case 'E \u2194 a':
-    case 'E \u2194 b':
+    case 'E \u2227 a': //E and Izq
+    case 'E \u2227 b': //E and Der
+    case 'I \u00AC ': //I not
+    case 'E \u00AC ': //E not
+    case 'E \u2194 a': //E <-> Izq
+    case 'E \u2194 b': //E <-> Der
       counter = 1;
       break;
+    case 'Supuesto':
+      counter = 1;
+      esSupuesto = true;
+      break;
     default:
+      //Reglas derivadas
       counter = findReglaParamNumber(regla);
       break;
   }
 
-  for (let i = currentQty; i < counter; i++) {
+  //Borrar todos los inputs
+  let parent = firstInput.parentElement;
+  while(parent.firstChild) {
+	parent.removeChild(parent.firstChild);
+  }
+  
+  //Introducir los nuevos inputs
+  for (let i = 0; i < counter; i++) {
     let clon = firstInput.cloneNode();
     clon.value = "";
     pasosInputs.appendChild(clon);
-  }
-
-  for (let i = counter; i < currentQty; i++) {
-    inputs[i].remove();
+    
+    //Si es supuesto generamos autocomplete
+    if(esSupuesto) {
+	  let dropdown = elem_from_str('<ul class="dropdown-menu"></ul>');
+	  pasosInputs.appendChild(dropdown);
+	  setAutocompleteEvents(clon);
+	}
   }
 }
 
+//Busca el numero de parametros de una regla derivada
 function findReglaParamNumber(reglaName) {
   let reglas = $('.reglaName');
   for (let i = 0; i < reglas.length; i++) {
@@ -3723,12 +3685,16 @@ function findReglaParamNumber(reglaName) {
   return 1;
 }
 
-function buildAutocompletePremisas(event, autocomplete) {
+//Ejecuta el automata sobre el input y construye el desplegable
+//con los siguientes simbolos validos
+function buildAutocomplete(event, autocomplete) {
   
   let key = event.target.value;
+  
   if(key == null || key == undefined){
     key = '';
   } else {
+	//Replace para los atajos de teclado
     key = key.replaceAll('-', '\u00AC');
     key = key.replaceAll('+', '\u2227');
     key = key.replaceAll('*', '\u2228');
@@ -3738,48 +3704,51 @@ function buildAutocompletePremisas(event, autocomplete) {
 
   event.target.value = key;
 
+  //Ejecutar automata
   let resultValidate = automataNoRecursion(key);
 
   autocomplete.innerHTML = '';
 
+  //Mostrar error
   if(resultValidate[0] == "ERROR") {
     event.target.classList.add('input-error');
     return;
   } else {
     event.target.classList.remove('input-error');
   }
-
+  
+  //Posibles siguientes simbolos
   let nextChars = resultValidate[1];
 
-  if(nextChars.includes("a")) {
+  if(nextChars.includes("a")) { //Literal
     autocomplete.innerHTML += '<li class="dropdown-item li-autcompl" data-value="" title="Literal"><span>...</span></li>';
   }
-  if(nextChars.includes("!")) {
+  if(nextChars.includes("!")) { //Not
     autocomplete.innerHTML += '<li class="dropdown-item li-autcompl" data-value="\u00AC"><span>\u00AC</span><span class="sc">(-)</span></li>';
   }
-  if(nextChars.includes("o")) {
+  if(nextChars.includes("o")) { //And, or, -->, <->
     autocomplete.innerHTML += '<li class="dropdown-item li-autcompl" data-value="\u2227"><span>\u2227</span><span class="sc">(+)</span></li>';
     autocomplete.innerHTML += '<li class="dropdown-item li-autcompl" data-value="\u2228"><span>\u2228</span><span class="sc">(*)</span></li>';
     autocomplete.innerHTML += '<li class="dropdown-item li-autcompl" data-value="\u2192"><span>\u2192</span><span class="sc">(/)</span></li>';
     autocomplete.innerHTML += '<li class="dropdown-item li-autcompl" data-value="\u2194"><span>\u2194</span><span class="sc">(=)</span></li>';  
   }
-  if(nextChars.includes(")")) {
+  if(nextChars.includes(")")) { //Abrir parentesis
     autocomplete.innerHTML += '<li class="dropdown-item li-autcompl" data-value=")"><span>)</span></li>';
   }
-  if(nextChars.includes("(")) {
+  if(nextChars.includes("(")) { //Cerrar parentesis
     autocomplete.innerHTML += '<li class="dropdown-item li-autcompl" data-value="("><span>(</span></li>';
   }
-
   
-
   $(autocomplete).slideDown();
 }
 
+//Opciones iniciales primer desplegable pasos
 const initialPasos = '<option value="Premisa">Premisa</option>'
   + '<option value="E">Eliminaci\u00F3n</option>'
   + '<option value="I">Inclusi\u00F3n</option>'
   + '<option value="Supuesto">Supuesto</option>';
 
+//Opciones segundo desplegable Eliminacion
 const eliminacion =  '<option value=" \u2227 a">\u2227 Izq</option>'
 + '<option value=" \u2227 b">\u2227 Der</option>'
 + '<option value=" \u2228 ">\u2228</option>'
@@ -3788,7 +3757,7 @@ const eliminacion =  '<option value=" \u2227 a">\u2227 Izq</option>'
 + '<option value=" \u2194 a">\u2194 Izq</option>'
 + '<option value=" \u2194 b">\u2194 Der</option>';
 
-
+//Opciones segundo desplegable Inclusion
 const inclusion =  '<option value=" \u2227 ">\u2227</option>'
 + '<option value=" \u2228 a">\u2228 Izq</option>'
 + '<option value=" \u2228 b">\u2228 Der</option>'
@@ -3797,38 +3766,6 @@ const inclusion =  '<option value=" \u2227 ">\u2227</option>'
 + '<option value=" \u2194 ">\u2194</option>';
 
 
-/*function buildAutocompletePasos(event, autocomplete) {
-  let key = event.target.value;
-  if(key == null || key == undefined || key.trim() == '') {
-
-    * let items = [];
-     * items.push("'Premisa'(A)");
-     * items.push("'I' " + String.fromCharCode(8743) + " (A,B)");
-     * items.push("'E' " + String.fromCharCode(8743) + " a(A)");
-     * items.push("'E' " + String.fromCharCode(8743) + " b(A)");
-     * items.push("'E' " + String.fromCharCode(8744) + " (A,B,C)");
-     * items.push("'I' " + String.fromCharCode(8744) + " a(A,Formula)");
-     * items.push("'I' " + String.fromCharCode(8744) + " b(Formula,B)");
-     * items.push("'I' " + String.fromCharCode(172) + " (A)");
-     * items.push("'E' " + String.fromCharCode(172) + " (A)");
-     * items.push("'E' " + String.fromCharCode(8594) + " (A,B)");
-     * items.push("'I' " + String.fromCharCode(8594) + " (A,B)");
-     * items.push("'Supuesto'(FA)");
-     * items.push("'I' " + String.fromCharCode(8596) + " (A,B)");
-     * items.push("'E' " + String.fromCharCode(8596) + " a(A)");
-     * items.push("'E' " + String.fromCharCode(8596) + " b(A)");
-     *
-
-    autocomplete.innerHTML = '';
-    items.map(item => {
-      autocomplete.innerHTML += '<li class="dropdown-item">' + item + '</li>'
-    });
-  
-    $(autocomplete).slideDown();
-  } else {
-    $(autocomplete).slideUp();
-  }
-}*/
 
 async function createDeduccionUI() {
   if(deduccionHtml == null) {
@@ -3836,7 +3773,6 @@ async function createDeduccionUI() {
   }
 
   let deduccion = elem_from_str(deduccionHtml);
-  // deduccion.getElementsByClassName('btnEjecutar')[0].addEventListener('click', (e) => {ejecutarDeduccion(e)}, false);
   return deduccion;
 }
 
@@ -3855,7 +3791,7 @@ async function addDeduccion(btn) {
   dedCont.insertBefore(deduccion, btn.parentNode);
   let inputs = $(dedCont).find('.premisa, .paso, .consecuente');
   inputs.each(function(index, element) {
-    setAutocomlpeteEvents(element);
+    setInputsEvents(element);
   });
 }
 
@@ -3865,7 +3801,7 @@ async function addRegla(btn) {
   reglaCont.insertBefore(regla, btn.parentNode);
   let inputs = $(reglaCont).find('.premisa, .paso, .consecuente');
   inputs.each(function(index, element) {
-    setAutocomlpeteEvents(element);
+    setInputsEvents(element);
   });
 }
 
@@ -3876,7 +3812,7 @@ function addInput(button) {
   let newInputField = newInput.getElementsByTagName('input')[0];
   newInputField.value = '';
   root.insertBefore(newInput, button.parentNode);
-  setAutocomlpeteEvents(newInputField);
+  setInputsEvents(newInputField);
 }
 
 function addPaso(button) {
@@ -3890,7 +3826,7 @@ function addPaso(button) {
     inputs[i].remove();
   }
   inputs[0].value = '';
-  setAutocompleteEventsPasos(newPaso);
+  setEventsPasos(newPaso);
   root.insertBefore(newPaso, button.parentNode);
 }
 
@@ -4022,7 +3958,6 @@ async function loadFromFile(code) {
   $('.deduccion').remove();
   $('.regla').remove();
 
-  // let deducRegex = new RegExp('^[^()\\[\\]:,\\s-]+\\s:-[\\s]*main_shell\\(\\[[^\\[\\]]*][^\\[\\]]*\\[[^\\[\\]]*\\]\\).', 'gm');
   let deducRegex = new RegExp('^[^()\\[\\]:,\\s-]+\\(Shell\\)\\s:-[\\s]*main_shell\\(\\[[^\\[\\]]*][^\\[\\]]*\\[[^\\[\\]]*\\],\\sShell\\).', 'gm');
   let reglaRegex = new RegExp('^regla\\(\'[^\']*\',\\s*\\[[^\\[\\]]*\\],[^\\[\\]]*\\[[^\\[\\]]*\\]\\).', 'gm');
 
@@ -4032,9 +3967,7 @@ async function loadFromFile(code) {
   if(reglas != null) {
     for (let i = 0; i < reglas.length; i++) {
       let el = reglas[i];
-      // let nameRegex = new RegExp('regla\\(\'[^\']*\'.', 'g');
       let name = el.split("'")[1];
-      // let rest = el.trim().slice(name.length + 9);
       let corchRegex = new RegExp('\\[[^\\[\\]]*\\]', 'g');
       let premisas = el.match(corchRegex)[0].slice(1,-1).split(',');
       let pasosRaw = el.match(corchRegex)[1].slice(1,-1);
@@ -4070,7 +4003,7 @@ async function loadFromFile(code) {
 
   let inputs = $('.premisa, .paso, .consecuente');
   inputs.each(function(index, element) {
-    setAutocomlpeteEvents(element);
+    setInputsEvents(element);
   });
 }
 
@@ -4086,7 +4019,7 @@ function checkNombreRegla(input) {
   input.value = value;
 }
 
-// Ejecución
+// Ejecucion
 function createDeduccionScript(deduccion) {
   let nombre = $(deduccion).find('.deduccionName')[0].value.trim();
   let premisas = $(deduccion).find('.premisa');
@@ -4103,11 +4036,6 @@ function createDeduccionScript(deduccion) {
       alert('La deduccion con nombre: "' + nombre + '" tiene campos vacios');
       return '';
     }
-
-    // let returnCode = "\n" + nombre + " :- \n\tmain(["
-    //   + codePremisas.toString() + "], "
-    //   + consecuente + ", ["
-    //   + codePasos.toString() + "]).\n";
 
     let returnCode = "\n" + nombre + "(Shell) :- \n\tmain_shell(["
       + codePremisas.toString() + "], "
@@ -4165,6 +4093,7 @@ function createPremisasScript(premisas) {
   return codePremisas;
 }
 
+//Convierte los simbolos unicode a los que usa el .pl
 function prettyToOriginal(code) {
   code = code.replaceAll('\u00AC', ' ! '); 
   code = code.replaceAll('\u2227', ' and '); 
@@ -4174,6 +4103,7 @@ function prettyToOriginal(code) {
   return code;
 }
 
+//Convierte los simbolos que usa el .pl a los unicode
 function originalToPretty(code) {
   code = code.replaceAll(' ! ', '\u00AC'); 
   code = code.replaceAll(' and ', '\u2227'); 
@@ -4183,6 +4113,8 @@ function originalToPretty(code) {
   return code;
 }
 
+//Convierte los simbolos que usa el .pl a los unicode agregando espacios
+//en varios lugares para evitar problemas al juntarse simbolos
 function hardOriginalToPretty(code) {
   code = code.replaceAll(' ! ', ' \u00AC '); 
   code = code.replaceAll('!', ' \u00AC'); 
@@ -4197,6 +4129,7 @@ function hardOriginalToPretty(code) {
   return code;
 }
 
+//Convierte simbolos a su formato en LaTeX
 function consolaToLatex(code) {
   //quitar espacios alrededor de los simbolos
   code = code.replaceAll(/\s*\u00AC\s*/gm, '\u00AC');
@@ -4217,13 +4150,17 @@ function consolaToLatex(code) {
   return code;
 }
 
+//Convierte los nombres de las reglas a formato LaTeX
 function consolaToLatexRegla(code) {
   if(code.startsWith("'Premisa'"))
     return "Premisa";
   if(code.startsWith("'Supuesto'"))
     return "Supuesto";
-  code = code.replaceAll(' ', '');
-  code = code.replaceAll("'", '');
+  //Borrar espacios
+  code = code.replaceAll(' ', ''); 
+  //Borrar comillas
+  code = code.replaceAll("'", ''); 
+  //Cambiar simbolos
   code = code.replaceAll('\u00AC', '_{\\neg}');
   code = code.replaceAll('\u2227', '_{\\land}');
   code = code.replaceAll('\u2228', '_{\\lor}'); 
@@ -4232,22 +4169,6 @@ function consolaToLatexRegla(code) {
 
   return "$ " + code + " $";
 }
-
-// function loadDeducciones() {
-//   if(originalCode == null) {
-//     originalCode = pgVar.get_editor_value();
-//   }
-
-//   let newCode = '';
-
-//   let deducciones = $('.deduccion');
-//   for (let i = 0; i < deducciones.length; i++) {
-//     newCode += createDeduccionScript(deducciones[i]);    
-//   }
-
-//   pgVar.set_code_and_process(originalCode + newCode);
-  
-// }
 
 function loadAll() {
   if(originalCode == null) {
@@ -4297,11 +4218,6 @@ function generateCodeLatex() {
 async function ejecutar(query){
   let mensaje = query + ':';
   let result = await pgVar.toplevel.do_query(query, {msg:mensaje});
-  // let result = await pgVar.toplevel.do_query_return(query, {msg:mensaje});
-  // if(result.err != "") {
-  //   alert(result.err);
-  // }
-  // console.log(result.out);
 }
 
 async function ejecutarMejora(name) {
@@ -4313,7 +4229,6 @@ async function ejecutarMejora(name) {
 }
 
 function ejecutarDeduccion(button) {
-  // let nombre = $(button).closest('.deduccion').find('.deduccionName').val();
   let name = $(button).closest('.deduccion').find('.deduccionName')[0];
   ejecutarMejora(name);
 }
@@ -4328,7 +4243,7 @@ async function fetchCode(url) {
 function handle_file_upload_custom(event, file_el) {
   let allowedExtensions = /(\.dn)$/i;
   if (!allowedExtensions.exec(file_el.value)) {
-    alert('Tipo de archivo no válido (se esperaba .dn).');
+    alert('Tipo de archivo no v\u00E1lido (se esperaba .dn).');
     file_el.value = '';
     return false;
   } else {
@@ -4343,19 +4258,6 @@ function handle_file_upload_custom(event, file_el) {
     
   }
 }
-
-// async function exportResultLatex(button) {
-//   let query = $(button).closest('.deduccion').find('.deduccionName').val();
-//   let result = await pgVar.toplevel.do_query_return(query, '');
-//   if(result.err != "") {
-//     alert(result.err);
-//   } else {
-//     let latex = originalToLatex(result.out);
-//     copyTextToClipboard(latex);
-//     alert("El siguiente resultado se ha copiado en el portapapeles:\n" + result.out);
-//   }
-//   console.log(result.out);
-// }
 
 function fallbackCopyTextToClipboard(text) {
   var textArea = document.createElement("textarea");
@@ -4394,167 +4296,7 @@ function copyTextToClipboard(text) {
 }
 
 
-//Autómata
-
-/*function validateExpression(expression) {
-  const unmatchedOpeningParentheses = [];
-
-  // Quitar whitespaces
-  expression = expression.replace(/\s/g, "");
-
-  // Comprobar char a char
-  for (let i = 0; i < expression.length; i++) {
-    let char = expression[i];
-
-    // Comprobar caracteres válidos
-    if (!isNegation(char) && !isOperator(char) && !isParenthesis(char) && !isAlphanumeric(char)) {
-      return false;
-    }
-
-    // Comprobar paréntesis
-    if (isOpeningParenthesis(char)) {
-      unmatchedOpeningParentheses.push(char);
-    } else if (isClosingParenthesis(char)) {
-      if (unmatchedOpeningParentheses.length === 0) {
-        return false; // Falta paréntesis de apertura
-      }
-      unmatchedOpeningParentheses.pop();
-    }
-
-    // Comprobar lógica con char anterior
-    // if(i > 0) {
-    //   let prevChar = expression[i-1];
-    //   if(isOperator(char) && 
-    //       !(isAlphanumeric(prevChar) || isClosingParenthesis(char))) {
-    //     return false;
-    //   } else if(isNegation(char) && 
-    //       !(isOperator(prevChar) || isNegation(prevChar) || isOpeningParenthesis(prevChar))) {
-    //     return false;
-    //   } else if(isAlphanumeric(char) && isClosingParenthesis(prevChar)) {
-    //     return false;
-    //   } else if(isOpeningParenthesis(char) &&
-    //       !()) {
-    //     return false;
-    //   } else if(isClosingParenthesis(char) &&
-    //       !()) {
-    //     return false;
-    //   }
-    // }
-  }
-
-  // Comprobar que no queden paréntesis sin cerrar
-  if (unmatchedOpeningParentheses.length !== 0) {
-    return false;
-  }
-
-  return true;
-}*/
-
-/* function checkAutomata(string) {
-//   var charArray = Array.from(string.replace(" ","")).reverse();
-//   var stack = [];
-
-//   stack.push('X');
-//   var result = automataState0(charArray, stack);
-// }
-
-// function automataState0(charArray, stack) {
-//   var currentChar = checkTop(charArray);
-//   var currentStack = checkTop(stack);
-
-//   if(isOpeningParenthesis(currentChar)) {
-//     stack.push('P');
-//     charArray.pop();
-//     return automataState0(charArray, stack);
-  
-//   } else if(isAlphanumeric(currentChar)) {
-//     charArray.pop();
-//     return automataState1(charArray, stack);
-
-//   } else if(isNegation(currentChar)) {
-//     charArray.pop();
-//     return automataState2(charArray, stack);    
-  
-//   } else if(currentChar == null){
-//     return ["CONTINUE", ["a", "!", "("]]
-//   } else {
-//     return ["ERROR"]
-//   }
-  
-// }
-
-// function automataState1(charArray, stack) {
-//   var currentChar = checkTop(charArray);
-//   var currentStack = checkTop(stack);
-
-//   if(isAlphanumeric(currentChar)) {
-//     charArray.pop();
-//     return automataState1(charArray, stack);
-
-//   } else if(isOperator(currentChar)) {
-//     charArray.pop();
-//     return automataState0(charArray, stack);
-
-//   } else if(isClosingParenthesis(currentChar)
-//     && currentStack == 'P') {
-//     stack.pop();
-//     charArray.pop();
-//     return automataState3(charArray, stack);
-
-//   } else if(currentChar == null && currentStack == 'X') {
-//     return ["CORRECT", ["a", "v"]]
-//   } else if(currentChar == null){
-//     return ["CONTINUE", ["a", "v", ")"]]
-//   } else {
-//     return ["ERROR"]
-//   }
-  
-// }
-
-// function automataState2(charArray, stack) {
-//   var currentChar = checkTop(charArray);
-//   var currentStack = checkTop(stack);
-
-//   if(isAlphanumeric(currentChar)) {
-//     charArray.pop();
-//     return automataState1(charArray, stack);
-
-//   } else if(isOpeningParenthesis(currentChar)) {
-//     stack.push('P');
-//     charArray.pop();
-//     return automataState0(charArray, stack);
-
-//   } else if(currentChar == null){
-//     return ["CONTINUE", ["a", "("]]
-//   } else {
-//     return ["ERROR"]
-//   }
-  
-// }
-
-// function automataState3(charArray, stack) {
-//   var currentChar = checkTop(charArray);
-//   var currentStack = checkTop(stack);
-
-//   if(isOperator(currentChar)) {
-//     charArray.pop();
-//     return automataState0(charArray, stack);
-
-//   } else if(isClosingParenthesis(currentChar)
-//     && currentStack == 'P') {
-//     charArray.pop();
-//     stack.pop();
-//     return automataState3(charArray, stack);
-
-//   } else if(currentChar == null && currentStack == 'X') { //no queda string
-//     return ["CORRECT", ["a", "v"]]
-//   } else if(currentChar == null){
-//     return ["CONTINUE", ["a", "v", ")"]]
-//   } else {
-//     return ["ERROR"]
-//   }
-  
-// }*/
+//Automata
 
 function automataNoRecursion(string) {
   var charArray = Array.from(string).reverse();

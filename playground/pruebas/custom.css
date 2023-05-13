@@ -2,7 +2,7 @@
     width: 100% !important;
 }
 
-.playground, .header{
+.playground, .header, .monaco-aria-container{
     display: none;
 }
 
@@ -56,4 +56,8 @@ pre {
 
 .index {
 	margin-right: 0.8em;
+}
+
+.d-flex .dropdown-menu {
+	transform: translate(0px, 2rem);
 }
