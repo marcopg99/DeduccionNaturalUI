@@ -1,5 +1,5 @@
 
-  var Module = typeof Module !== 'undefined' ? Module : {};
+  var Module = typeof globalThis.__emciao !== 'undefined' ? globalThis.__emciao : {};
 
   if (!Module.expectedDataFileDownloads) {
     Module.expectedDataFileDownloads = 0;
@@ -7,9 +7,8 @@
 
   Module.expectedDataFileDownloads++;
   (function() {
-    // When running as a pthread, FS operations are proxied to the main thread, so we don't need to
-    // fetch the .data bundle on the worker
-    if (Module['ENVIRONMENT_IS_PTHREAD']) return;
+    // Do not attempt to redownload the virtual filesystem data when in a pthread or a Wasm Worker context.
+    if (Module['ENVIRONMENT_IS_PTHREAD'] || Module['$ww']) return;
     var loadPackage = function(metadata) {
 
       var PACKAGE_PATH = '';
@@ -19,7 +18,7 @@
         // web worker
         PACKAGE_PATH = encodeURIComponent(location.pathname.toString().substring(0, location.pathname.toString().lastIndexOf('/')) + '/');
       }
-      var PACKAGE_NAME = '/home/marcopg99/.ciaoroot/v1.22.0-m1/build/site/ciao/build/dist/ciaowasm.mods.data';
+      var PACKAGE_NAME = '/home/marco/.ciaoroot/v1.22.0-m7/build/site/ciao/build/dist/ciaowasm.mods.data';
       var REMOTE_PACKAGE_BASE = 'ciaowasm.mods.data';
       if (typeof Module['locateFilePackage'] === 'function' && !Module['locateFile']) {
         Module['locateFile'] = Module['locateFilePackage'];
@@ -67,7 +66,7 @@ var REMOTE_PACKAGE_SIZE = metadata['remote_package_size'];
               num++;
             }
             total = Math.ceil(total * Module.expectedDataFileDownloads/num);
-            if (Module['setStatus']) Module['setStatus']('Downloading data... (' + loaded + '/' + total + ')');
+            if (Module['setStatus']) Module['setStatus'](`Downloading data... (${loaded}/${total})`);
           } else if (!Module.dataFileDownloads) {
             if (Module['setStatus']) Module['setStatus']('Downloading data...');
           }
@@ -108,31 +107,30 @@ var REMOTE_PACKAGE_SIZE = metadata['remote_package_size'];
         if (!check) throw msg + new Error().stack;
       }
 Module['FS_createPath']("/", "home", true, true);
-Module['FS_createPath']("/home", "marcopg99", true, true);
-Module['FS_createPath']("/home/marcopg99", ".ciaoroot", true, true);
-Module['FS_createPath']("/home/marcopg99/.ciaoroot", "v1.22.0-m1", true, true);
-Module['FS_createPath']("/home/marcopg99/.ciaoroot/v1.22.0-m1", "build", true, true);
-Module['FS_createPath']("/home/marcopg99/.ciaoroot/v1.22.0-m1/build", "bundlereg", true, true);
-Module['FS_createPath']("/home/marcopg99/.ciaoroot/v1.22.0-m1/build", "cache", true, true);
-Module['FS_createPath']("/home/marcopg99/.ciaoroot/v1.22.0-m1", "ciaowasm", true, true);
-Module['FS_createPath']("/home/marcopg99/.ciaoroot/v1.22.0-m1/ciaowasm", "js", true, true);
-Module['FS_createPath']("/home/marcopg99/.ciaoroot/v1.22.0-m1/ciaowasm", "lib", true, true);
-Module['FS_createPath']("/home/marcopg99/.ciaoroot/v1.22.0-m1/ciaowasm/lib", "foreign_js", true, true);
-Module['FS_createPath']("/home/marcopg99/.ciaoroot/v1.22.0-m1/ciaowasm", "src", true, true);
+Module['FS_createPath']("/home", "marco", true, true);
+Module['FS_createPath']("/home/marco", ".ciaoroot", true, true);
+Module['FS_createPath']("/home/marco/.ciaoroot", "v1.22.0-m7", true, true);
+Module['FS_createPath']("/home/marco/.ciaoroot/v1.22.0-m7", "build", true, true);
+Module['FS_createPath']("/home/marco/.ciaoroot/v1.22.0-m7/build", "bundlereg", true, true);
+Module['FS_createPath']("/home/marco/.ciaoroot/v1.22.0-m7/build", "cache", true, true);
+Module['FS_createPath']("/home/marco/.ciaoroot/v1.22.0-m7", "ciaowasm", true, true);
+Module['FS_createPath']("/home/marco/.ciaoroot/v1.22.0-m7/ciaowasm", "js", true, true);
+Module['FS_createPath']("/home/marco/.ciaoroot/v1.22.0-m7/ciaowasm", "lib", true, true);
+Module['FS_createPath']("/home/marco/.ciaoroot/v1.22.0-m7/ciaowasm/lib", "foreign_js", true, true);
 
       function processPackageData(arrayBuffer) {
         assert(arrayBuffer, 'Loading data file failed.');
         assert(arrayBuffer.constructor.name === ArrayBuffer.name, 'bad input to processPackageData');
         var byteArray = new Uint8Array(arrayBuffer);
         var curr;
-        var compressedData = {"data":null,"cachedOffset":38017,"cachedIndexes":[-1,-1],"cachedChunks":[null,null],"offsets":[0,989,1319,1768,2284,2828,3671,4802,5910,7225,8340,9648,10364,11442,11842,12259,12774,13337,13880,14478,15641,16884,18220,19444,20084,21220,22496,23481,24437,25709,26943,28052,29353,30481,31731,32953,34284,35738,37032],"sizes":[989,330,449,516,544,843,1131,1108,1315,1115,1308,716,1078,400,417,515,563,543,598,1163,1243,1336,1224,640,1136,1276,985,956,1272,1234,1109,1301,1128,1250,1222,1331,1454,1294,985],"successes":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]}
+        var compressedData = {"data":null,"cachedOffset":50597,"cachedIndexes":[-1,-1],"cachedChunks":[null,null],"offsets":[0,989,1320,1771,2291,2838,3679,4804,5916,7225,8333,9636,10346,11428,11850,12253,12760,13317,13865,14403,15432,16715,18135,19419,20584,21667,22568,23751,24915,26168,27530,28747,30055,31164,32258,33608,34754,35827,37126,38176,39482,40686,41824,42946,44144,45346,46512,47901,49073,50536],"sizes":[989,331,451,520,547,841,1125,1112,1309,1108,1303,710,1082,422,403,507,557,548,538,1029,1283,1420,1284,1165,1083,901,1183,1164,1253,1362,1217,1308,1109,1094,1350,1146,1073,1299,1050,1306,1204,1138,1122,1198,1202,1166,1389,1172,1463,61],"successes":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]}
 ;
             compressedData['data'] = byteArray;
             assert(typeof Module['LZ4'] === 'object', 'LZ4 not present - was your app build with -sLZ4?');
             Module['LZ4'].loadPackage({ 'metadata': metadata, 'compressedData': compressedData }, false);
-            Module['removeRunDependency']('datafile_/home/marcopg99/.ciaoroot/v1.22.0-m1/build/site/ciao/build/dist/ciaowasm.mods.data');
+            Module['removeRunDependency']('datafile_/home/marco/.ciaoroot/v1.22.0-m7/build/site/ciao/build/dist/ciaowasm.mods.data');
       };
-      Module['addRunDependency']('datafile_/home/marcopg99/.ciaoroot/v1.22.0-m1/build/site/ciao/build/dist/ciaowasm.mods.data');
+      Module['addRunDependency']('datafile_/home/marco/.ciaoroot/v1.22.0-m7/build/site/ciao/build/dist/ciaowasm.mods.data');
 
       if (!Module.preloadResults) Module.preloadResults = {};
 
@@ -153,6 +151,6 @@ Module['FS_createPath']("/home/marcopg99/.ciaoroot/v1.22.0-m1/ciaowasm", "src", 
     }
 
     }
-    loadPackage({"files": [{"filename": "/home/marcopg99/.ciaoroot/v1.22.0-m1/build/bundlereg/ciaowasm.bundlecfg", "start": 0, "end": 0}, {"filename": "/home/marcopg99/.ciaoroot/v1.22.0-m1/build/bundlereg/ciaowasm.bundlereg", "start": 0, "end": 440}, {"filename": "/home/marcopg99/.ciaoroot/v1.22.0-m1/build/cache/ciaowasm.lib.foreign_js.foreign_js_rt.itf", "start": 440, "end": 11802}, {"filename": "/home/marcopg99/.ciaoroot/v1.22.0-m1/build/cache/ciaowasm.lib.foreign_js.foreign_js_rt.po", "start": 11802, "end": 24752}, {"filename": "/home/marcopg99/.ciaoroot/v1.22.0-m1/build/cache/ciaowasm.src.ciaowasm.itf", "start": 24752, "end": 38866}, {"filename": "/home/marcopg99/.ciaoroot/v1.22.0-m1/build/cache/ciaowasm.src.ciaowasm.po", "start": 38866, "end": 48956}, {"filename": "/home/marcopg99/.ciaoroot/v1.22.0-m1/ciaowasm/js/ciao-async.js", "start": 48956, "end": 60074}, {"filename": "/home/marcopg99/.ciaoroot/v1.22.0-m1/ciaowasm/js/ciao-eng.js", "start": 60074, "end": 66946}, {"filename": "/home/marcopg99/.ciaoroot/v1.22.0-m1/ciaowasm/js/ciao-worker.js", "start": 66946, "end": 71141}, {"filename": "/home/marcopg99/.ciaoroot/v1.22.0-m1/ciaowasm/js/post-js.js", "start": 71141, "end": 71148}, {"filename": "/home/marcopg99/.ciaoroot/v1.22.0-m1/ciaowasm/js/pre-js.js", "start": 71148, "end": 71576}, {"filename": "/home/marcopg99/.ciaoroot/v1.22.0-m1/ciaowasm/lib/foreign_js/foreign_js.pl", "start": 71576, "end": 71703}, {"filename": "/home/marcopg99/.ciaoroot/v1.22.0-m1/ciaowasm/lib/foreign_js/foreign_js_rt.pl", "start": 71703, "end": 74659}, {"filename": "/home/marcopg99/.ciaoroot/v1.22.0-m1/ciaowasm/src/ciaoengwasm.pl", "start": 74659, "end": 75114}, {"filename": "/home/marcopg99/.ciaoroot/v1.22.0-m1/ciaowasm/src/ciaowasm.pl", "start": 75114, "end": 79478}], "remote_package_size": 42113});
+    loadPackage({"files": [{"filename": "/home/marco/.ciaoroot/v1.22.0-m7/build/bundlereg/ciaowasm.bundlecfg", "start": 0, "end": 0}, {"filename": "/home/marco/.ciaoroot/v1.22.0-m7/build/bundlereg/ciaowasm.bundlereg", "start": 0, "end": 424}, {"filename": "/home/marco/.ciaoroot/v1.22.0-m7/build/cache/ciaowasm.lib.foreign_js.foreign_js_rt.itf", "start": 424, "end": 11786}, {"filename": "/home/marco/.ciaoroot/v1.22.0-m7/build/cache/ciaowasm.lib.foreign_js.foreign_js_rt.po", "start": 11786, "end": 24735}, {"filename": "/home/marco/.ciaoroot/v1.22.0-m7/build/cache/ciaowasm.src.ciaowasm.itf", "start": 24735, "end": 39139}, {"filename": "/home/marco/.ciaoroot/v1.22.0-m7/build/cache/ciaowasm.src.ciaowasm.po", "start": 39139, "end": 52524}, {"filename": "/home/marco/.ciaoroot/v1.22.0-m7/ciaowasm/js/ciao-prolog.js", "start": 52524, "end": 99818}, {"filename": "/home/marco/.ciaoroot/v1.22.0-m7/ciaowasm/js/post-js.js", "start": 99818, "end": 99825}, {"filename": "/home/marco/.ciaoroot/v1.22.0-m7/ciaowasm/js/pre-js.js", "start": 99825, "end": 100286}, {"filename": "/home/marco/.ciaoroot/v1.22.0-m7/ciaowasm/lib/foreign_js/foreign_js.pl", "start": 100286, "end": 100413}], "remote_package_size": 54693});
 
   })();

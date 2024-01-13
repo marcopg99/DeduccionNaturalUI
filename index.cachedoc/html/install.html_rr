@@ -1,5 +1,0 @@
-filetype(documentation).
-sect([level(1)],global_label("Install"),[string_esc("Install")]).
-sect([level(2)],local_label("Quick installation"),[string_esc("Quick installation")]).
-sect([level(2)],local_label("Manual installation"),[string_esc("Manual installation")]).
-sect([level(2)],local_label("Uninstalling Ciao"),[string_esc("Uninstalling Ciao")]).

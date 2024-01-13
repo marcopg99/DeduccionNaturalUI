@@ -69,7 +69,11 @@ q(1).
 % Example query: ?- p(X).
 `,
         // Amend code (add module, etc.)
-        amend_on_save: false,
+        amend_on_save: false
+      };
+      // Query for loading code
+      var toplevelCfg = {
+        // ------
         // Special queries // TODO: missing arity
         special_query: {
           "load": { read_code: true }
@@ -82,10 +86,9 @@ q(1).
           'use_module(scasp(scasp))'
         ]
       };
-      // Query for loading code
-      playgroundCfg.custom_load_query = ((m) => { return "load('"+m+"')"; });
+      toplevelCfg.custom_load_query = ((m) => { return "load('"+m+"')"; });
       // Transformation for user queries
-      playgroundCfg.custom_run_query = ((q) => {
+      toplevelCfg.custom_run_query = ((q) => {
         if (/load\(.*\)/.test(q)) { // Do not patch
           return q;
         } else {
@@ -96,7 +99,7 @@ q(1).
         }
       });
       // Post-print code (before update_inner_layout()) 
-      playgroundCfg.custom_postprint_sol = (async (pg) => {
+      toplevelCfg.custom_postprint_sol = (async (pg) => {
         if (pg.cproc.state === QueryState.VALIDATING) {
           // Ugly hack, remove DUMMYDUMMY
           pg.toplevel.move_to_end();
@@ -283,8 +286,8 @@ q(1).
         });
       }
     </script>
-    <script src="/js/lpdoc-aux.js"></script> <!-- LPdoc UI -->
-    <script src="/playground/js/ciao_playground.js"></script> <!-- main script -->
+    <script> var lpdocPG='playground'; </script>
+    <script src="/js/lpdoc.js"></script> <!-- LPdoc UI -->
   </head>
   <body></body>
 </html>
