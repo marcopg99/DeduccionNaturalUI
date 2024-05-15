@@ -3787,6 +3787,7 @@ function deleteInput(button) {
   let container = button.parentNode.parentNode;
   if(container.children.length <= 2) {
     $(button.parentNode).find('input').val("");
+	$(button.parentNode).find('input').removeClass("input-error");
     $(button.parentNode).find('select').val("");
   } else {
     button.parentNode.remove();

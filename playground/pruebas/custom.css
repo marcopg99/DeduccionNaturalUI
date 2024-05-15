@@ -58,13 +58,6 @@ pre {
 	margin-right: 0.8em;
 }
 
-.d-flex .dropdown-menu {
-	transform: translate(0px, 2rem);
-}
-
-
-
-
 
 h1, h2, h3, h4, h5, h6 {
 	color: #e0e0e0;
@@ -78,9 +71,4 @@ body, html {
     background-color: black !important;
     color: white !important;
     border: none !important;
-}
-
-.premisasContainer .dropdown-menu,
-.consecuenteContainer .dropdown-menu{
-    margin-top: -1rem;
 }
